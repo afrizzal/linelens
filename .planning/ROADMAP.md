@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Every event carries accelerated sim-time stamped at the source; no component derives time from wall-clock (verified: hand-computed durations are identical at 2× vs 10× acceleration).
   4. OEE computed by hand from the wire matches the calibrated spread — most lines 50–65%, one showcase ~85%, one problem line <45% — with natural jitter, and loss events carry operator-style reason codes grouped by the Six Big Losses.
   5. The shift calendar defines Planned Production Time: breaks and no-production windows are excluded (Schedule Loss); changeovers are not excluded.
-**Plans**: TBD
+**Plans**: 3 — 01-01 monorepo+compose backbone · 01-02 contracts package (events/topics/clock/calendar/losses) · 01-03 simulator (state machine, calibration, MQTT, control endpoint)
 
 ### Phase 2: OEE Engine (Credibility Gate)
 **Goal**: The ingestion worker turns raw telemetry into a correct, auditable OEE and loss ledger that a factory-literate viewer cannot fault — built and unit-tested before any number reaches a screen.
@@ -42,7 +42,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. OEE computes with the preferred calculation (A = Run/PPT; P = ICT × Total/Run; Q = Good/Total) per line and shift, and the Vitest suite confirms correct classification: small stops → Performance, changeover → Availability under a configurable "changeover as planned" policy with planned→unplanned transition on overage.
   4. Validation guards fire: Performance > 100% is flagged as misconfigured Ideal Cycle Time, no-runtime windows show "N/A" (never 0% or NaN), and the Total = Good + Reject invariant holds.
   5. Live OEE clamps open/in-progress intervals to sim-now and produces identical results at 2× vs 10× clock acceleration.
-**Plans**: TBD
+**Plans**: 3 — 02-01 db schema+seed+idempotent ingestion · 02-02 interval derivation + loss ledger + NOTIFY · 02-03 OEE views + golden/invariance tests
 
 ### Phase 3: Live Dashboard — Vertical Slice
 **Goal**: The signature money shot works live end-to-end — inject a breakdown and watch OEE, the andon board, and the production timeline react in real time — proving the real-time hot path before breadth is added.
@@ -53,7 +53,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A viewer sees a real-time OEE waterfall (A×P×Q) per line/shift.
   3. A viewer sees a color-coded production timeline per line (state bands over sim-time).
   4. A viewer triggers "Inject breakdown" (dashboard button or HTTP endpoint) on a chosen line and watches the cascade — OEE drops, the andon tile turns red — propagate live within seconds.
-**Plans**: TBD
+**Plans**: 3 — 03-01 SSE infra + read-model APIs · 03-02 shell+andon+waterfall · 03-03 timeline (ECharts Gantt spike) + inject control + human cascade sign-off
 **UI hint**: yes
 
 ### Phase 4: DIFOT, Losses Pareto & Daily Direction Setting
@@ -65,7 +65,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A viewer sees DIFOT % (in-full, on-time) computed from a simulated order book (demand per SKU/day) fulfilled from simulated production output.
   3. A viewer drills down from a late/at-risk order to the specific contributing machine-level loss events ("breakdown Line 2 → 3 orders late"), and injecting a *different* breakdown changes *which* order goes late — a genuinely causal link, not a hardcoded demo path.
   4. A viewer sees a Daily Direction Setting screen: yesterday's safety/quality/delivery + OEE + top loss, top-3 actions today with owners, and escalation status.
-**Plans**: TBD
+**Plans**: 3 — 04-01 order book + FIFO allocation + DIFOT view · 04-02 drill-down fn + order detail + causality proof test · 04-03 Pareto + DDS screen
 **UI hint**: yes
 
 ### Phase 5: Distribution
@@ -77,7 +77,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A 60-second seeded/deterministic GIF captures the inject-breakdown → OEE → andon → DIFOT drill-down flow.
   3. A portfolio case study page is published with honest framing (simulated build informed by Integra + PLC experience; DIFOT positioned as a "bridge," no absolute-uniqueness claim).
   4. At least 1 LinkedIn process post is published and LineLens is attached to at least 1 real job application.
-**Plans**: TBD
+**Plans**: 2 — 05-01 demo scenario + smoke + README + GIF + publish · 05-02 case study + LinkedIn + application (human-gated)
 
 ## Progress
 
@@ -86,8 +86,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Living Plant | 0/TBD | Not started | - |
-| 2. OEE Engine (Credibility Gate) | 0/TBD | Not started | - |
-| 3. Live Dashboard — Vertical Slice | 0/TBD | Not started | - |
-| 4. DIFOT, Losses Pareto & DDS | 0/TBD | Not started | - |
-| 5. Distribution | 0/TBD | Not started | - |
+| 1. Foundation & Living Plant | 0/3 | Planned | - |
+| 2. OEE Engine (Credibility Gate) | 0/3 | Planned | - |
+| 3. Live Dashboard — Vertical Slice | 0/3 | Planned | - |
+| 4. DIFOT, Losses Pareto & DDS | 0/3 | Planned | - |
+| 5. Distribution | 0/2 | Planned | - |

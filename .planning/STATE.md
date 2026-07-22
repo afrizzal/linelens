@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-07-22)
 ## Current Position
 
 Phase: 1 of 5 (Foundation & Living Plant)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-07-22 — Roadmap created (5 phases, coarse granularity, 24/24 requirements mapped)
+Plan: 0 of 3 in current phase (14 plans total: 3/3/3/3/2)
+Status: Ready to execute — ALL 14 plans for phases 1–5 authored upfront (2026-07-23, by the planning session's main model at the user's request; adversarially reviewed). Do NOT run /gsd:plan-phase — go straight to /gsd:execute-phase N.
+Last activity: 2026-07-23 — All-phase plans written to .planning/phases/*/; model profile switched quality→balanced so executors run on Sonnet
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - Roadmap: Foundation + Simulator folded into one phase (coarse granularity, 2–3 week sprint); contracts still built first within Phase 1.
 - Roadmap: Six Big Losses Pareto (DASH-02) grouped with DIFOT + DDS in Phase 4 to keep Phase 3 a clean vertical slice.
 - Roadmap: SIM-05 (inject-breakdown cascade) mapped to Phase 3, where the live cascade first becomes observable, not to the simulator phase that builds the control endpoint.
+- All-phase upfront planning (2026-07-23): 14 detailed plans authored in one pass with formulas, schemas, and hand-computed golden values embedded; later-phase plans assume earlier-phase contracts — if execution deviates from a contract (schema/file/interface), UPDATE the downstream plans before executing them, do not improvise.
+- SSE fan-out = Postgres LISTEN/NOTIFY (worker stays the sole MQTT consumer per ENG-01); STACK.md's direct-MQTT-subscribe suggestion is the rejected variant.
+- Model profile switched to balanced (executor=Sonnet) at the user's request — plans carry the full logic so execution needs no re-derivation.
 
 ### Pending Todos
 
