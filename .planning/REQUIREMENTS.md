@@ -67,4 +67,31 @@ Requirement quality bar: specific, testable, viewer-centric (the "user" of this 
 
 ## Traceability
 
-(Filled by roadmap — every v1 requirement maps to exactly one phase.)
+Every v1 requirement maps to exactly one phase. Coverage: 24/24 mapped.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SIM-01 | Phase 1 — Foundation & Living Plant | Pending |
+| SIM-02 | Phase 1 — Foundation & Living Plant | Pending |
+| SIM-03 | Phase 1 — Foundation & Living Plant | Pending |
+| SIM-04 | Phase 1 — Foundation & Living Plant | Pending |
+| SIM-06 | Phase 1 — Foundation & Living Plant | Pending |
+| SIM-07 | Phase 1 — Foundation & Living Plant | Pending |
+| ENG-01 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-02 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-03 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-04 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-05 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-06 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| DASH-01 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
+| DASH-03 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
+| DASH-04 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
+| SIM-05 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
+| DASH-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DIFOT-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DIFOT-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DDS-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DIST-01 | Phase 5 — Distribution | Pending |
+| DIST-02 | Phase 5 — Distribution | Pending |
+| DIST-03 | Phase 5 — Distribution | Pending |
+| DIST-04 | Phase 5 — Distribution | Pending |
