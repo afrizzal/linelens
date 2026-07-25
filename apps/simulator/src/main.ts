@@ -59,7 +59,7 @@ const main = async (): Promise<void> => {
   };
   const simNow = (): number => computeSimNow(clock, Date.now());
 
-  const server = createControlServer({ plant, getClock, setClock, simNow, logger }, CONTROL_PORT);
+  const server = createControlServer({ plant, getClock, setClock, simNow, nowRealMs: () => Date.now(), logger }, CONTROL_PORT);
 
   const interval = setInterval(() => {
     try {

@@ -14,6 +14,8 @@ export interface ControlDeps {
   getClock: () => ClockState;
   setClock: (c: ClockState) => void;
   simNow: () => number;
+  /** Wall-clock "now" provider — kept as an injected dependency so this file never calls Date.now() itself (main.ts owns the clock edge). */
+  nowRealMs: () => number;
   logger: Logger;
 }
 
@@ -39,7 +41,7 @@ const sendJson = (res: http.ServerResponse, status: number, body: unknown): void
 };
 
 export const createControlServer = (deps: ControlDeps, port: number): http.Server => {
-  const { plant, getClock, setClock, simNow, logger } = deps;
+  const { plant, getClock, setClock, simNow, nowRealMs, logger } = deps;
 
   const server = http.createServer((req, res) => {
     const url = req.url ?? '/';
@@ -87,8 +89,7 @@ export const createControlServer = (deps: ControlDeps, port: number): http.Serve
             sendJson(res, 400, { error: 'speed must be a positive number' });
             return;
           }
-          const nowRealMs = Date.now();
-          const next = rebase(getClock(), nowRealMs, speed);
+          const next = rebase(getClock(), nowRealMs(), speed);
           setClock(next);
           logger.info({ speed }, 'clock rebased');
           sendJson(res, 200, next);
