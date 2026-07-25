@@ -23,11 +23,9 @@ A recruiter or plant manager watching a 60-second demo immediately understands: 
 ### Active
 
 **Simulator**
-- [ ] Configurable factory simulator (lines, machines, shifts, ideal cycle time per product) generating realistic loss events via a per-machine state machine mapped to the Six Big Losses
-- [ ] Simulator publishes telemetry over MQTT (Mosquitto) using Sparkplug-B-style topics (`spBv1.0/LineLens/<type>/<line>/<machine>`) with PackTags-lite JSON payloads (Status + Admin subset: state, counts, cycle time, alarms)
-- [ ] Operator-style reason-code annotation modeled on loss events (mirrors how real OEE tools get reason data — operator input, not sensors)
-- [ ] Demo "Inject breakdown" control (HTTP endpoint + dashboard button) that visibly cascades through OEE → andon → DIFOT live
-- [ ] Calibrated realism: most lines 50–65% OEE, one showcase line ~85%, one problem line <45%
+- [ ] Demo "Inject breakdown" control that visibly cascades through OEE → andon → DIFOT live — the HTTP endpoint ships and is smoke-tested; the dashboard button and the visible cascade land in Phase 3
+
+<sub>The remaining Simulator requirements moved to Validated in Phase 1.</sub>
 
 **OEE Engine**
 - [ ] Ingestion worker subscribes MQTT → persists raw events → derives state intervals with loss categories in Postgres
