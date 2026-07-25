@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-07-25T12:27:59.204Z"
+last_activity: 2026-07-25
+progress:
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 14
+  completed_plans: 1
+  percent: 0
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +21,21 @@
 See: .planning/PROJECT.md (updated 2026-07-22)
 
 **Core value:** A 60-second demo makes "machine downtime = broken customer promises" viscerally clear — breakdown on Line 2 → 3 orders late this week — with industry-correct OEE mechanics.
-**Current focus:** Phase 1 — Foundation & Living Plant
+**Current focus:** Phase 01 — foundation-living-plant
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation & Living Plant)
-Plan: 0 of 3 in current phase (14 plans total: 3/3/3/3/2)
-Status: Ready to execute — ALL 14 plans for phases 1–5 authored upfront (2026-07-23, by the planning session's main model at the user's request; adversarially reviewed). Do NOT run /gsd:plan-phase — go straight to /gsd:execute-phase N.
-Last activity: 2026-07-23 — All-phase plans written to .planning/phases/*/; model profile switched quality→balanced so executors run on Sonnet
+Phase: 01 (foundation-living-plant) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-25
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: — min
 - Total execution time: 0.0 hours
@@ -30,10 +47,12 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: —
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01 P1 | 55 | 2 tasks | 43 files |
 
 ## Accumulated Context
 
@@ -48,6 +67,9 @@ Recent decisions affecting current work:
 - All-phase upfront planning (2026-07-23): 14 detailed plans authored in one pass with formulas, schemas, and hand-computed golden values embedded; later-phase plans assume earlier-phase contracts — if execution deviates from a contract (schema/file/interface), UPDATE the downstream plans before executing them, do not improvise.
 - SSE fan-out = Postgres LISTEN/NOTIFY (worker stays the sole MQTT consumer per ENG-01); STACK.md's direct-MQTT-subscribe suggestion is the rejected variant.
 - Model profile switched to balanced (executor=Sonnet) at the user's request — plans carry the full logic so execution needs no re-derivation.
+- [Phase 01]: Postgres 18 volume mounts at /var/lib/postgresql (not .../data) per docker-library/postgres#1259
+- [Phase 01]: TypeScript pinned to 5.9.3 (TS 7 stable not yet published; only dev nightlies)
+- [Phase 01]: Vitest 4 workspace uses test.projects in vitest.config.ts; vitest.workspace.ts kept as a pointer since the standalone workspace-file format is deprecated in v4
 
 ### Pending Todos
 
@@ -62,9 +84,10 @@ None yet.
 - Phase 1 research gap: PackML minimal state subset must be verified against ISA-TR88.00.02-2015 (not the OPC community summary) before coding the simulator state machine.
 - Phase 3 research gap: Next.js App Router SSE + Postgres LISTEN/NOTIFY mechanics were web-verified only (Context7 unreachable during research) — confirm via Context7 at Phase 3 start.
 - Non-negotiable across all phases: no `Date.now()` in derivation code — event-time from the payload is the only "now" downstream (silent number-corruption class).
+- Full 5-service docker compose up (app image build) unverified in the execution sandbox — a local TLS-interception layer blocks npm/corepack registry fetches from inside Docker containers; re-verify on a machine without corporate TLS inspection before relying on it for the demo GIF.
 
 ## Session Continuity
 
-Last session: 2026-07-22
-Stopped at: ROADMAP.md and STATE.md written; REQUIREMENTS.md traceability filled
+Last session: 2026-07-25T12:27:59.197Z
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None

@@ -1,0 +1,19 @@
+{
+  "name": "@linelens/simulator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@linelens/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "tsx": "4.23.1",
+    "@types/node": "24.10.0"
+  }
+}
