@@ -12,7 +12,7 @@ LineLens delivers one signature scene: inject a breakdown on a line, watch OEE d
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Living Plant** - One-command virtual factory streaming calibrated, event-time telemetry over MQTT
+- [x] **Phase 1: Foundation & Living Plant** - One-command virtual factory streaming calibrated, event-time telemetry over MQTT <sub>(2026-07-25)</sub>
 - [ ] **Phase 2: OEE Engine (Credibility Gate)** - Ingestion worker derives an auditable loss ledger and correct A×P×Q OEE
 - [ ] **Phase 3: Live Dashboard — Vertical Slice** - Andon, waterfall, timeline, and the inject-breakdown cascade working live end-to-end
 - [ ] **Phase 4: DIFOT, Losses Pareto & Daily Direction Setting** - Machine losses linked to late orders, loss Pareto, and the management shift screen
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Living Plant | 1/3 | In Progress|  |
+| 1. Foundation & Living Plant | 3/3 | Complete | 2026-07-25 |
 | 2. OEE Engine (Credibility Gate) | 0/3 | Planned | - |
 | 3. Live Dashboard — Vertical Slice | 0/3 | Planned | - |
 | 4. DIFOT, Losses Pareto & DDS | 0/3 | Planned | - |
