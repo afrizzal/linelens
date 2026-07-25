@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Living Plant | 0/3 | Planned | - |
+| 1. Foundation & Living Plant | 1/3 | In Progress|  |
 | 2. OEE Engine (Credibility Gate) | 0/3 | Planned | - |
 | 3. Live Dashboard — Vertical Slice | 0/3 | Planned | - |
 | 4. DIFOT, Losses Pareto & DDS | 0/3 | Planned | - |
