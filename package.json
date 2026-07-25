@@ -13,11 +13,16 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "vitest run",
     "dev": "pnpm -r --parallel --if-present run dev",
-    "build": "pnpm -r --if-present run build"
+    "build": "pnpm -r --if-present run build",
+    "test:smoke": "playwright test",
+    "smoke": "docker compose up -d --wait db mqtt simulator web && playwright test"
   },
   "devDependencies": {
+    "@linelens/contracts": "workspace:*",
+    "@playwright/test": "1.61.1",
+    "@types/node": "24.10.0",
+    "mqtt": "5.15.2",
     "typescript": "5.9.3",
-    "vitest": "4.1.10",
-    "@types/node": "24.10.0"
+    "vitest": "4.1.10"
   }
 }
