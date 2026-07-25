@@ -33,16 +33,25 @@ services:
       context: .
       dockerfile: docker/app.Dockerfile
     command: ["pnpm", "--filter", "@linelens/simulator", "start"]
+    expose:
+      - "4000"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://linelens:linelens-dev@db:5432/linelens}
       MQTT_URL: ${MQTT_URL:-mqtt://mqtt:1883}
       SIM_SPEED: ${SIM_SPEED:-60}
       SIM_SEED: ${SIM_SEED:-42}
+      CONTROL_PORT: "4000"
     depends_on:
       db:
         condition: service_healthy
       mqtt:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   worker:
     build:
