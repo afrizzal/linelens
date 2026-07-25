@@ -12,7 +12,13 @@ A recruiter or plant manager watching a 60-second demo immediately understands: 
 
 ### Validated
 
-(None yet — ship to validate)
+**Validated in Phase 1: Foundation & Living Plant** (2026-07-25) — SIM-01, SIM-02, SIM-03, SIM-04, SIM-06, SIM-07. A configurable virtual plant runs under one `docker compose up` and streams contract-valid, sim-time-stamped telemetry that a viewer can read straight off the broker. Machine-verified, not asserted: `pnpm smoke` (Playwright, `tests/smoke/compose-stack.spec.ts`) drives the live stack, and the unit suite is 56/56 green.
+- [x] Configurable factory simulator (lines, machines, shifts, ideal cycle time per product) generating realistic loss events via a per-machine state machine mapped to the Six Big Losses
+- [x] Simulator publishes telemetry over MQTT (Mosquitto) using Sparkplug-B-style topics with PackTags-lite JSON payloads
+- [x] Operator-style reason-code annotation modeled on loss events
+- [x] Accelerated sim clock stamped at the source — event streams are byte-identical across clock speeds; no component reads wall-clock for domain time
+- [x] Calibrated OEE spread (showcase ~85%, typical 50–65%, problem line <45%) with natural jitter
+- [x] Shift calendar defines Planned Production Time: breaks excluded as Schedule Loss, changeovers not excluded
 
 ### Active
 
@@ -113,4 +119,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-22 after initialization*
+*Last updated: 2026-07-25 after Phase 1 completion*
