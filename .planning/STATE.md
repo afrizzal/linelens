@@ -2,35 +2,35 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: ready
 stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-25T13:07:38.237Z"
+last_updated: "2026-07-25T14:17:23.241Z"
 last_activity: 2026-07-25
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
   completed_plans: 3
-  percent: 0
+  percent: 21
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-22)
+See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** A 60-second demo makes "machine downtime = broken customer promises" viscerally clear — breakdown on Line 2 → 3 orders late this week — with industry-correct OEE mechanics.
-**Current focus:** Phase 01 — foundation-living-plant
+**Current focus:** Phase 02 — OEE Engine (Credibility Gate)
 
 ## Current Position
 
-Phase: 01 (foundation-living-plant) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
+Phase: 02
+Plan: 0 of 3 in Phase 02
+Status: Phase 01 complete and verified (status: passed; compose smoke test automated the last human-UAT item). Ready to execute Phase 02 — plans already authored, do NOT run /gsd:plan-phase.
 Last activity: 2026-07-25
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 21% (3/14 plans)
 
 ## Performance Metrics
 
@@ -88,7 +88,9 @@ None yet.
 - Phase 1 research gap: PackML minimal state subset must be verified against ISA-TR88.00.02-2015 (not the OPC community summary) before coding the simulator state machine.
 - Phase 3 research gap: Next.js App Router SSE + Postgres LISTEN/NOTIFY mechanics were web-verified only (Context7 unreachable during research) — confirm via Context7 at Phase 3 start.
 - Non-negotiable across all phases: no `Date.now()` in derivation code — event-time from the payload is the only "now" downstream (silent number-corruption class).
-- Full 5-service docker compose up (app image build) unverified in the execution sandbox — a local TLS-interception layer blocks npm/corepack registry fetches from inside Docker containers; re-verify on a machine without corporate TLS inspection before relying on it for the demo GIF.
+- ~~Full 5-service docker compose up (app image build) unverified~~ **RESOLVED 2026-07-25.** Automated as `pnpm smoke` (Playwright, `tests/smoke/compose-stack.spec.ts`) instead of deferring to a manual check — which is how two real defects were found: no `.dockerignore` (host `node_modules` clobbered the image's, crash-looping all three app services on `MODULE_NOT_FOUND`) and simulator port `expose`d but not published. Fixed in `f494f54`. The TLS-interception build failure was genuinely environmental and is now handled by an opt-in `docker/certs/` → `NODE_EXTRA_CA_CERTS` step that no-ops on a clean machine.
+- Lesson for later phases: the unit suite stayed 56/56 green while the entire appliance was unbootable. Run `pnpm smoke` after any phase that touches compose, the Dockerfile, or a service entrypoint — and extend the suite as Phase 2/3 add the worker loop and dashboard.
+- `worker` currently exits 0 on `docker compose up` (Phase 1 skeleton, no domain logic). Phase 2 must give it a real MQTT subscribe loop; add a `worker`-stays-up assertion to the smoke suite then.
 
 ## Session Continuity
 

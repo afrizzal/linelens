@@ -33,8 +33,11 @@ services:
       context: .
       dockerfile: docker/app.Dockerfile
     command: ["pnpm", "--filter", "@linelens/simulator", "start"]
-    expose:
-      - "4000"
+    # Published (not just exposed) so the control endpoint is reachable from the
+    # host — needed by the compose smoke test and by manual `curl` demos of
+    # inject-breakdown without shelling into a container.
+    ports:
+      - "4000:4000"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://linelens:linelens-dev@db:5432/linelens}
       MQTT_URL: ${MQTT_URL:-mqtt://mqtt:1883}

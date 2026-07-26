@@ -8,3 +8,14 @@ mosquitto-log/
 *.log
 .turbo/
 .DS_Store
+
+# Machine-local TLS-interception CA certs (see docker/app.Dockerfile)
+docker/certs/*.crt
+docker/certs/*.pem
+!docker/certs/.gitkeep
+
+# Playwright smoke-test output
+test-results/
+playwright-report/
+blob-report/
+.playwright/

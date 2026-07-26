@@ -1,0 +1,29 @@
+# Without this, `COPY . .` overwrites the image's correctly-installed node_modules
+# with the host's (on Windows, pnpm symlinks pointing at host paths) — every app
+# service then dies on MODULE_NOT_FOUND for tsx/next.
+node_modules
+**/node_modules
+
+# Build output / caches — rebuilt in the image, and stale copies mask real errors.
+.next
+**/.next
+dist
+**/dist
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Not needed at runtime; churn here would bust the build cache on every commit.
+.git
+.gitignore
+.planning
+docs
+README.md
+CLAUDE.md
+
+# Never bake local secrets into an image.
+.env
+.env.*
+!.env.example
+
+# Machine-local TLS-interception CAs are copied explicitly and early in the
+# Dockerfile (docker/certs/), so they must NOT be excluded here.

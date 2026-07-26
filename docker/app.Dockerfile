@@ -2,6 +2,14 @@
 # Command (and therefore which app runs) is set per-service in docker-compose.yml.
 FROM node:24-slim
 
+# Optional extra trust anchors for machines behind a TLS-intercepting proxy
+# (corporate MITM, Avast/Kaspersky "SSL scanning", Zscaler...). Drop a .crt into
+# docker/certs/ and it is trusted during build; the directory is empty on a clean
+# machine, so this is a no-op there. Certs are gitignored — machine-local only.
+COPY docker/certs/ /tmp/extra-certs/
+RUN cat /tmp/extra-certs/*.crt > /usr/local/share/extra-ca.crt 2>/dev/null || : > /usr/local/share/extra-ca.crt
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/extra-ca.crt
+
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.34.4 --activate
