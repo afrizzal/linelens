@@ -14,6 +14,12 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.34.4 --activate
 
+# Prisma's schema-engine (used by `migrate`) needs libssl to detect the
+# OpenSSL version on Debian slim images — without it Prisma falls back to a
+# guessed openssl-1.1.x target and warns on every invocation. node:24-slim
+# does not ship openssl by default.
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install deps first (better layer caching), then copy the rest of the source.
@@ -27,6 +33,13 @@ COPY apps/web/package.json apps/web/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# Generate the Prisma client. Deliberately AFTER `COPY . .` (not a
+# postinstall hook on `pnpm install` above) because schema.prisma only
+# exists once the full source is copied in — the two-stage
+# package.json-then-source COPY above is what keeps the install layer
+# cacheable, and a postinstall generate would break that ordering.
+RUN pnpm --filter @linelens/db run generate
 
 # No build step for v1: simulator/worker run via tsx directly, web runs `next dev`.
 # This is an appliance, not a scaled service — dev-mode Next.js is an accepted

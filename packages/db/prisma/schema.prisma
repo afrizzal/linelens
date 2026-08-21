@@ -1,0 +1,131 @@
+// LineLens database schema — Prisma 7 (driver-adapter architecture).
+// Datasource URL lives in prisma.config.ts, NOT here (Prisma 7 convention).
+//
+// Table names are snake_case via @@map (ARCHITECTURE.md table sketch);
+// column names keep Prisma's default camelCase so they always match the
+// quoted identifiers used in hand-written SQL (see the sim_now() function in
+// the initial migration) without a second mapping layer to keep in sync.
+
+generator client {
+  provider      = "prisma-client"
+  output        = "../generated/prisma"
+  moduleFormat  = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Master data: production line.
+model Line {
+  id       String    @id
+  name     String
+  machines Machine[]
+
+  @@map("line")
+}
+
+/// Master data: a product SKU with its Ideal Cycle Time (fastest theoretical
+/// rate, NOT a budget number — docs/00-domain-research.md §2).
+model Product {
+  id                String  @id
+  name              String
+  idealCycleTimeSec Float
+  machines          Machine[]
+
+  @@map("product")
+}
+
+/// Master data: a machine. changeoverTargetMin/startupWindowMin are resolved
+/// via @linelens/contracts `resolveCalibration()` — the SAME source the
+/// simulator uses (never re-derived) so the OEE engine's planned->unplanned
+/// overage split runs against the target the sim actually used.
+model Machine {
+  id                  String  @id
+  lineId              String
+  name                String
+  profile             String
+  changeoverTargetMin Float
+  startupWindowMin    Float
+  currentProductId    String?
+
+  line    Line     @relation(fields: [lineId], references: [id])
+  product Product? @relation(fields: [currentProductId], references: [id])
+
+  @@map("machine")
+}
+
+/// Master data: shift definition — mirrors @linelens/contracts ShiftDef.
+/// Seeded, read by SQL (aggregation queries in later plans), never mutated
+/// by the app.
+model Shift {
+  id       String @id
+  name     String
+  startMin Int
+  endMin   Int
+  breaks   Json
+
+  @@map("shift")
+}
+
+/// Master data: operator-annotation reason-code vocabulary, from
+/// @linelens/contracts REASON_CODES.
+model ReasonCode {
+  code     String @id
+  label    String
+  category String
+
+  @@map("reason_code")
+}
+
+/// Append-only, immutable raw telemetry fact stream — THE replay source for
+/// every derived table in later plans. Idempotent on the natural key
+/// (machineId, seq): re-ingesting the same event is a no-op.
+///
+/// Deliberately has NO foreign keys to Machine/Line/Product — raw ingestion
+/// must never fail or block on master-data completeness/ordering; it is the
+/// single lossless truth the rest of the system reconstructs from.
+model MachineEvent {
+  id                BigInt   @id @default(autoincrement())
+  machineId         String
+  lineId            String
+  /// STATE_CHANGE | COUNTS | ALARM — mirrors TelemetryEvent['kind'].
+  kind              String
+  /// Sim-time timestamp, stamped at the source by the simulator. NEVER
+  /// wall-clock — see the standing rule in @linelens/contracts sim-clock.ts.
+  simTime           DateTime
+  /// Wall-clock audit column only — when the worker persisted this row.
+  ingestedAt        DateTime @default(now())
+  /// Per-machine monotonic sequence number; idempotency key with machineId.
+  seq               Int
+  state             String?
+  reasonCode        String?
+  goodDelta         Int?
+  rejectDelta       Int?
+  rejectReason      String?
+  idealCycleTimeSec Float?
+  productId         String?
+  /// Sim-seconds duration; used by ALARM (micro-stop length).
+  durationSec       Float?
+  meta              Json?
+
+  @@unique([machineId, seq])
+  @@index([machineId, simTime])
+  @@map("machine_event")
+}
+
+/// Singleton row mirroring the simulator's authoritative ClockState
+/// (@linelens/contracts sim-clock.ts). The worker is the sole writer: it
+/// polls GET {SIMULATOR_URL}/clock and upserts this row whenever any field
+/// changed. epochSimMs/startedAtRealMs/pausedAtRealMs are epoch-MILLIS —
+/// NOT timestamptz — the sim_now() SQL function below does the millis math
+/// directly; do not treat these as seconds or the clamp math slips by 1000x.
+model SimClock {
+  id              Int     @id @default(1)
+  epochSimMs      BigInt
+  startedAtRealMs BigInt
+  speed           Float
+  pausedAtRealMs  BigInt?
+
+  @@map("sim_clock")
+}

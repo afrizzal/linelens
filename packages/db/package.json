@@ -8,10 +8,24 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx seed/seed.ts"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
-    "@types/node": "24.10.0"
+    "@types/node": "24.10.0",
+    "@types/pg": "8.20.0",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@linelens/contracts": "workspace:*",
+    "@prisma/adapter-pg": "7.9.0",
+    "@prisma/client": "7.9.0",
+    "dotenv": "^17.4.2",
+    "pg": "8.22.0",
+    "prisma": "7.9.0"
   }
 }
