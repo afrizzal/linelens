@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: oee-engine
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-08-21T15:29:50.320Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-08-21T16:45:23.901Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 ## Current Position
 
 Phase: 02 (oee-engine) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 02 execution started
 
-Progress: [███░░░░░░░] 29% (3/14 plans)
+Progress: [████░░░░░░] 36% (3/14 plans)
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [███░░░░░░░] 29% (3/14 plans)
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 02 P1 | 95min | 3 tasks | 20 files |
+| Phase 02-oee-engine P2 | 70min | 4 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Prisma table names snake_case via @@map; columns left at default camelCase (quoted) to match the plan's literal sim_now() SQL body verbatim
 - [Phase ?]: Prisma client generation is an explicit Dockerfile step after COPY . . (never a postinstall hook) since schema.prisma isn't present during the earlier package.json-only install layer
 - [Phase ?]: mosquitto.conf max_queued_messages set to 0 (unlimited) after a Testcontainers integration test proved the 1000 default silently drops backlog for an offline persistent session, violating the lossless-ingestion invariant
+- [Phase ?]: 02-02: Convention for 02-03 — sim-time columns stay TIMESTAMP(3) WITHOUT TIME ZONE (matching machine_event.simTime); every 02-03 SQL comparison against sim_now() must use sim_now() AT TIME ZONE 'UTC', proven by a regression test under SET TimeZone='Asia/Jakarta'
+- [Phase ?]: 02-02: raw pg.Client Date-parameter binding is LOCAL-OS-TZ-dependent for naive timestamp columns (unlike Prisma's UTC-safe serialization) — always bind ISO 'Z'-suffixed strings, never Date objects, through raw pg
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T15:29:50.309Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-08-21T16:45:23.874Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

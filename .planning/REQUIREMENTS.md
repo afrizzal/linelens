@@ -17,9 +17,9 @@ Requirement quality bar: specific, testable, viewer-centric (the "user" of this 
 ### OEE Engine (ENG)
 
 - [x] **ENG-01**: A single ingestion worker is the sole MQTT consumer and sole Postgres writer; raw machine events are persisted losslessly
-- [ ] **ENG-02**: Worker derives state intervals from events and records every loss in one `loss_event` ledger (lost-time units, tagged to one of the Six Big Losses, retaining line/machine/time identity)
+- [x] **ENG-02**: Worker derives state intervals from events and records every loss in one `loss_event` ledger (lost-time units, tagged to one of the Six Big Losses, retaining line/machine/time identity)
 - [ ] **ENG-03**: OEE is computed with the preferred calculation (A = Run Time/PPT; P = Ideal Cycle Time × Total Count/Run Time; Q = Good/Total) aggregated per line and shift
-- [ ] **ENG-04**: Loss classification is correct per verified definitions: small stops → Performance loss; changeover → Availability loss under a configurable "changeover as planned" policy, with planned→unplanned transition on target overage
+- [x] **ENG-04**: Loss classification is correct per verified definitions: small stops → Performance loss; changeover → Availability loss under a configurable "changeover as planned" policy, with planned→unplanned transition on target overage
 - [ ] **ENG-05**: Built-in validation guards: Performance > 100% is flagged as misconfigured Ideal Cycle Time; no-runtime windows show "N/A" (never 0% or NaN); Total = Good + Reject invariant holds
 - [ ] **ENG-06**: Live OEE handles in-progress intervals correctly (open-interval clamping) and produces identical results at different clock accelerations (2× vs 10× test)
 
@@ -78,9 +78,9 @@ Every v1 requirement maps to exactly one phase. Coverage: 24/24 mapped.
 | SIM-06 | Phase 1 — Foundation & Living Plant | Complete |
 | SIM-07 | Phase 1 — Foundation & Living Plant | Complete |
 | ENG-01 | Phase 2 — OEE Engine (Credibility Gate) | Complete |
-| ENG-02 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-02 | Phase 2 — OEE Engine (Credibility Gate) | Complete |
 | ENG-03 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
-| ENG-04 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
+| ENG-04 | Phase 2 — OEE Engine (Credibility Gate) | Complete |
 | ENG-05 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
 | ENG-06 | Phase 2 — OEE Engine (Credibility Gate) | Pending |
 | DASH-01 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
