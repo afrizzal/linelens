@@ -2,16 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-25T14:17:23.241Z"
-last_activity: 2026-07-25
+current_phase: 02
+current_phase_name: oee-engine
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-08-21T15:29:50.320Z"
+last_activity: 2026-08-21
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 3
-  percent: 21
+  completed_plans: 4
 ---
 
 # Project State
@@ -21,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** A 60-second demo makes "machine downtime = broken customer promises" viscerally clear — breakdown on Line 2 → 3 orders late this week — with industry-correct OEE mechanics.
-**Current focus:** Phase 02 — OEE Engine (Credibility Gate)
+**Current focus:** Phase 02 — oee-engine
 
 ## Current Position
 
-Phase: 02
-Plan: 0 of 3 in Phase 02
-Status: Phase 01 complete and verified (status: passed; compose smoke test automated the last human-UAT item). Ready to execute Phase 02 — plans already authored, do NOT run /gsd-plan-phase.
-Last activity: 2026-07-25
+Phase: 02 (oee-engine) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-08-21 — Phase 02 execution started
 
-Progress: [██░░░░░░░░] 21% (3/14 plans)
+Progress: [███░░░░░░░] 29% (3/14 plans)
 
 ## Performance Metrics
 
@@ -55,6 +57,11 @@ Progress: [██░░░░░░░░] 21% (3/14 plans)
 | Phase 01 P1 | 55 | 2 tasks | 43 files |
 | Phase 01-foundation-living-plant P2 | 42min | 4 tasks | 16 files |
 | Phase 01-foundation-living-plant P3 | 75min | 4 tasks | 14 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 02 P1 | 95min | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -74,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Vitest 4 workspace uses test.projects in vitest.config.ts; vitest.workspace.ts kept as a pointer since the standalone workspace-file format is deprecated in v4
 - [Phase 01-foundation-living-plant]: Contracts package (@linelens/contracts) locked: states/losses/reasons/events/topics/sim-clock/calendar/plant-config as the single source for simulator, worker, and web
 - [Phase 01-foundation-living-plant]: Simulator: discrete-event scheduler (not fixed-tick) with execute-time-domain countdown budgets makes the plant provably speed-invariant
+- [Phase ?]: Prisma table names snake_case via @@map; columns left at default camelCase (quoted) to match the plan's literal sim_now() SQL body verbatim
+- [Phase ?]: Prisma client generation is an explicit Dockerfile step after COPY . . (never a postinstall hook) since schema.prisma isn't present during the earlier package.json-only install layer
+- [Phase ?]: mosquitto.conf max_queued_messages set to 0 (unlimited) after a Testcontainers integration test proved the 1000 default silently drops backlog for an offline persistent session, violating the lossless-ingestion invariant
 
 ### Pending Todos
 
@@ -94,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-25T13:07:38.231Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-08-21T15:29:50.309Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
