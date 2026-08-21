@@ -2,7 +2,9 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
 import { createDb, seedIfEmpty, type Db } from '@linelens/db';
+import { startDerivationLoop } from './derive/runner.js';
 import { createIngestion } from './ingest.js';
+import { createNotifier } from './notify.js';
 
 const logger = pino({ name: 'linelens-worker', level: process.env.LOG_LEVEL ?? 'info' });
 
@@ -105,10 +107,23 @@ const main = async (): Promise<void> => {
 
   const ingestion = createIngestion({ db, logger, mqttUrl: MQTT_URL });
 
+  // The OEE engine: machine_event -> state_interval -> loss_event
+  // (02-02-PLAN.md). The notifier is a DEDICATED raw pg connection (never
+  // Prisma, never pooled — see notify.ts); DATABASE_URL is required to get
+  // this far (createDb() above already throws if it's unset).
+  const notifier = await createNotifier({ connectionString: process.env.DATABASE_URL!, logger });
+  const derivationLoop = startDerivationLoop({
+    db,
+    logger,
+    onLineIdsChanged: (lineIds) => notifier.notifyLineIds(lineIds),
+  });
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'shutting down worker');
     clearInterval(clockInterval);
+    derivationLoop.stop();
     await ingestion.close();
+    await notifier.close();
     await db.$disconnect();
     process.exit(0);
   };
