@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import mqtt, { type MqttClient } from 'mqtt';
 import pino from 'pino';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { GenericContainer, Wait, type StartedTestContainer } from 'testcontainers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { topicFor } from '@linelens/contracts';
 import { createDb, type Db } from '@linelens/db';
@@ -12,22 +13,32 @@ import { createIngestion, type IngestHandle } from '../src/ingest.js';
  * Integration test for the worker's MQTT ingestion path (plan
  * 02-01-PLAN.md Task 3 verify). Deliberately uses:
  *  - a DISPOSABLE Postgres via testcontainers (fresh schema per run), and
- *  - the REAL compose Mosquitto broker (eclipse-mosquitto:2.0.22,
- *    persistence true) at mqtt://localhost:1883 — an in-process fake broker
- *    (e.g. aedes) cannot honestly validate persisted QoS1/clean:false
- *    session survival across a client restart, which is exactly the
- *    property under test.
+ *  - a DISPOSABLE, per-run Mosquitto broker via testcontainers
+ *    (eclipse-mosquitto:2.0.22, the SAME docker/mosquitto/mosquitto.conf the
+ *    compose stack uses — persistence true, max_queued_messages 0) — a real
+ *    broker because an in-process fake (e.g. aedes) cannot honestly
+ *    validate persisted QoS1/clean:false session survival across a client
+ *    restart, which is exactly the property under test.
  *
- * Requires: `docker compose up -d db mqtt` running (mqtt published on
- * host:1883) and Docker available for testcontainers. Skipped automatically
- * if neither is reachable.
+ * FINDING 1 FIX (02-02 mandatory finding): this suite used to publish to
+ * the SHARED live compose broker (mqtt://localhost:1883). The real worker
+ * subscribes to the wildcard topic `spBv1.0/LineLens/DDATA/+/+` and would
+ * ingest every TEST-* event this suite published, leaking ~1100-2200
+ * phantom rows into the demo appliance's database on every test run — the
+ * suite stayed green while silently corrupting the live data (same failure
+ * shape as Phase 1's "unit suite stayed green while the appliance was
+ * unbootable" lesson). Spinning up an OWN broker per run makes this suite
+ * fully hermetic — it no longer needs a running compose stack at all,
+ * which also helps Phase 5's clean-clone goal.
+ *
+ * Requires only Docker (for testcontainers) — no compose stack needed.
  */
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
-const MQTT_URL = process.env.TEST_MQTT_URL ?? 'mqtt://localhost:1883';
-// Unique per test run so this suite never collides with the live simulator's
-// continuous stream (same broker, same wildcard subscription) or with a
-// previous run's leftover retained/queued state.
+const MOSQUITTO_CONF_PATH = fileURLToPath(new URL('../../../docker/mosquitto/mosquitto.conf', import.meta.url));
+
+// Unique per test run purely for readability in the isolated broker's logs —
+// no collision risk anymore since the broker itself is disposable per run.
 const TEST_LINE_ID = `TEST-L-${Date.now()}`;
 const TEST_MACHINE_ID = `TEST-M-${Date.now()}`;
 const TOPIC = topicFor({ lineId: TEST_LINE_ID, machineId: TEST_MACHINE_ID });
@@ -100,10 +111,12 @@ const waitUntilSubscribed = (client: MqttClient): Promise<void> =>
     client.once('connect', () => setTimeout(resolve, 300));
   });
 
-describe('worker ingestion (integration: testcontainers postgres + compose mosquitto)', () => {
+describe('worker ingestion (integration: testcontainers postgres + testcontainers mosquitto, both disposable)', () => {
   let pg: StartedPostgreSqlContainer;
+  let mosquitto: StartedTestContainer;
   let db: Db;
   let publisher: MqttClient;
+  let mqttUrl: string;
 
   beforeAll(async () => {
     pg = await new PostgreSqlContainer('postgres:18')
@@ -116,12 +129,23 @@ describe('worker ingestion (integration: testcontainers postgres + compose mosqu
     runMigrateDeploy(databaseUrl);
     db = createDb(databaseUrl);
 
-    publisher = mqtt.connect(MQTT_URL, { clientId: `ingest-test-publisher-${Date.now()}` });
+    // Own, disposable broker — the SAME config the compose stack runs
+    // (persistence true, max_queued_messages 0), so a persistent QoS1
+    // session across a simulated worker restart is validated for real, with
+    // zero risk of leaking into any shared/live database.
+    mosquitto = await new GenericContainer('eclipse-mosquitto:2.0.22')
+      .withExposedPorts(1883)
+      .withCopyFilesToContainer([{ source: MOSQUITTO_CONF_PATH, target: '/mosquitto/config/mosquitto.conf' }])
+      .withWaitStrategy(Wait.forListeningPorts())
+      .start();
+    mqttUrl = `mqtt://${mosquitto.getHost()}:${mosquitto.getMappedPort(1883)}`;
+
+    publisher = mqtt.connect(mqttUrl, { clientId: `ingest-test-publisher-${Date.now()}` });
     await new Promise<void>((resolve, reject) => {
       publisher.once('connect', () => resolve());
       publisher.once('error', reject);
     });
-  }, 60_000);
+  }, 90_000);
 
   afterAll(async () => {
     await new Promise<void>((resolve) => {
@@ -130,6 +154,7 @@ describe('worker ingestion (integration: testcontainers postgres + compose mosqu
     });
     await db?.$disconnect();
     await pg?.stop();
+    await mosquitto?.stop();
   }, 30_000);
 
   it(
@@ -141,7 +166,7 @@ describe('worker ingestion (integration: testcontainers postgres + compose mosqu
       const ingestion: IngestHandle = createIngestion({
         db,
         logger,
-        mqttUrl: MQTT_URL,
+        mqttUrl,
         clientId: `linelens-worker-test-${Date.now()}`,
       });
       // Wait for connect+subscribe BEFORE publishing — otherwise the early
@@ -180,7 +205,7 @@ describe('worker ingestion (integration: testcontainers postgres + compose mosqu
       //    other consumer is subscribed at this point (the previous test's
       //    ingestion was closed) — redelivery to `resumedIngestion` below
       //    is the ONLY path these events can reach the DB through.
-      const restartIngestion = createIngestion({ db, logger, mqttUrl: MQTT_URL, clientId: restartClientId });
+      const restartIngestion = createIngestion({ db, logger, mqttUrl, clientId: restartClientId });
       await waitUntilSubscribed(restartIngestion.client);
       restartIngestion.client.end(true); // force=true: raw disconnect, no DISCONNECT packet — session persists
 
@@ -191,7 +216,7 @@ describe('worker ingestion (integration: testcontainers postgres + compose mosqu
 
       // 3. Reconnect with the SAME clientId — broker replays the queued
       //    backlog, resuming the stream with no gap.
-      const resumedIngestion = createIngestion({ db, logger, mqttUrl: MQTT_URL, clientId: restartClientId });
+      const resumedIngestion = createIngestion({ db, logger, mqttUrl, clientId: restartClientId });
       const finalCount = await waitForCount(db, 1100, 25_000);
       await resumedIngestion.close();
 

@@ -94,6 +94,9 @@ importers:
       mqtt:
         specifier: 5.15.2
         version: 5.15.2
+      pg:
+        specifier: 8.22.0
+        version: 8.22.0
       pino:
         specifier: 10.3.1
         version: 10.3.1
@@ -104,6 +107,12 @@ importers:
       '@types/node':
         specifier: 24.10.0
         version: 24.10.0
+      '@types/pg':
+        specifier: 8.20.0
+        version: 8.20.0
+      testcontainers:
+        specifier: 12.1.0
+        version: 12.1.0
       tsx:
         specifier: 4.23.1
         version: 4.23.1
