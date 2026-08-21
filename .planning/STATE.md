@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 Phase: 02
 Plan: 0 of 3 in Phase 02
-Status: Phase 01 complete and verified (status: passed; compose smoke test automated the last human-UAT item). Ready to execute Phase 02 — plans already authored, do NOT run /gsd:plan-phase.
+Status: Phase 01 complete and verified (status: passed; compose smoke test automated the last human-UAT item). Ready to execute Phase 02 — plans already authored, do NOT run /gsd-plan-phase.
 Last activity: 2026-07-25
 
 Progress: [██░░░░░░░░] 21% (3/14 plans)
