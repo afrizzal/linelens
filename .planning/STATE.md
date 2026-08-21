@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 02
 current_phase_name: oee-engine
-status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-08-21T16:45:23.901Z"
+status: verifying
+stopped_at: Completed 02-03-PLAN.md (phase 02 gate passed)
+last_updated: "2026-08-21T18:08:20.636Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 Phase: 02 (oee-engine) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-21 — Phase 02 execution started
 
-Progress: [████░░░░░░] 36% (3/14 plans)
+Progress: [████░░░░░░] 43% (3/14 plans)
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [████░░░░░░] 36% (3/14 plans)
 |------|----------|-------|-------|
 | Phase 02 P1 | 95min | 3 tasks | 20 files |
 | Phase 02-oee-engine P2 | 70min | 4 tasks | 18 files |
+| Phase 02 P3 | 165min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase ?]: mosquitto.conf max_queued_messages set to 0 (unlimited) after a Testcontainers integration test proved the 1000 default silently drops backlog for an offline persistent session, violating the lossless-ingestion invariant
 - [Phase ?]: 02-02: Convention for 02-03 — sim-time columns stay TIMESTAMP(3) WITHOUT TIME ZONE (matching machine_event.simTime); every 02-03 SQL comparison against sim_now() must use sim_now() AT TIME ZONE 'UTC', proven by a regression test under SET TimeZone='Asia/Jakarta'
 - [Phase ?]: 02-02: raw pg.Client Date-parameter binding is LOCAL-OS-TZ-dependent for naive timestamp columns (unlike Prisma's UTC-safe serialization) — always bind ISO 'Z'-suffixed strings, never Date objects, through raw pg
+- [Phase ?]: 02-03: OEE SQL views driven by master data + LATERAL correlated subqueries (not a DISTINCT scan over machine_event) — required to hit <50ms EXPLAIN budget at demo volume (was 2.29s)
+- [Phase ?]: 02-03: loss_event.stateIntervalId left unpopulated (out of this plan's file scope) — Phase 4 DIFOT drill-down should know this traceability column is dead before planning around it
+- [Phase ?]: 02-03: live OEE bands (pristine window >=2026-01-19) show L2/L3 'typical' profile averaging 1.2-1.6pp above the 50-65% target band — simulator calibration note, not an engine defect
 
 ### Pending Todos
 
@@ -107,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T16:45:23.874Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-08-21T18:07:52.811Z
+Stopped at: Completed 02-03-PLAN.md (phase 02 gate passed)
 Resume file: None

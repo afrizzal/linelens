@@ -49,11 +49,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Validation guards fire: Performance > 100% is flagged as misconfigured Ideal Cycle Time, no-runtime windows show "N/A" (never 0% or NaN), and the Total = Good + Reject invariant holds.
   5. Live OEE clamps open/in-progress intervals to sim-now and produces identical results at 2× vs 10× clock acceleration.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 - [x] 02-01-PLAN.md
 - [x] 02-02-PLAN.md
-- [ ] 02-03-PLAN.md
+- [x] 02-03-PLAN.md
 
 ### Phase 3: Live Dashboard — Vertical Slice
 
@@ -107,7 +107,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Living Plant | 3/3 | Complete | 2026-07-25 |
-| 2. OEE Engine (Credibility Gate) | 2/3 | In Progress|  |
+| 2. OEE Engine (Credibility Gate) | 3/3 | In Progress|  |
 | 3. Live Dashboard — Vertical Slice | 0/3 | Planned | - |
 | 4. DIFOT, Losses Pareto & DDS | 0/3 | Planned | - |
 | 5. Distribution | 0/2 | Planned | - |
