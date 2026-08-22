@@ -1,4 +1,4 @@
-import { createDb, type Db } from "@linelens/db";
+import { createDb, type Db } from "@linelens/db/client";
 
 /**
  * Shared Prisma client singleton for the web app's read-only API routes
