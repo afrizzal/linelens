@@ -20,23 +20,24 @@ A recruiter or plant manager watching a 60-second demo immediately understands: 
 - [x] Calibrated OEE spread (showcase ~85%, typical 50–65%, problem line <45%) with natural jitter
 - [x] Shift calendar defines Planned Production Time: breaks excluded as Schedule Loss, changeovers not excluded
 
+**Validated in Phase 2: OEE Engine — Credibility Gate** (2026-08-21) — ENG-01 … ENG-06. The engine behind the numbers: a single worker owns MQTT and Postgres, losses land in one ledger, and OEE is computed with the preferred A×P×Q definition. Machine-verified: hand-computed golden scenarios to 4 dp, an acceleration-invariance test against the real simulator, and a `SET TimeZone='Asia/Jakarta'` regression proving the sim-time SQL contract.
+- [x] Ingestion worker subscribes MQTT -> persists raw events losslessly -> derives state intervals with loss categories in Postgres (sole MQTT consumer, sole writer)
+- [x] Preferred OEE calculation (A x P x Q) aggregated per line/shift, with Performance > 100% flagged as misconfigured Ideal Cycle Time
+- [x] Correct loss classification: small stops -> Performance loss; changeover -> Availability loss (Setup & Adjustments), configurable "changeover as planned" policy + planned->unplanned transition on overage
+- [x] Live OEE handles open intervals correctly and is identical across clock accelerations
+
+**Validated in Phase 3: Live Dashboard — Vertical Slice** (2026-08-22) — DASH-01, DASH-03, DASH-04, SIM-05. The signature money shot works live end-to-end. Verified 4/4 must-haves; the inject-breakdown cascade was confirmed by human walkthrough against the running stack, not asserted. Regression suite 95/95 green.
+- [x] Real-time OEE waterfall (A x P x Q) per line/shift
+- [x] Color-coded production timeline per line (ECharts custom-series Gantt over sim-time, with break shading)
+- [x] Andon board: all lines on one screen — state + good count + target count, updating live via SSE (Postgres LISTEN/NOTIFY fan-out)
+- [x] Demo "Inject breakdown" control that visibly cascades through OEE -> andon -> timeline live
+
 ### Active
 
-**Simulator**
-- [ ] Demo "Inject breakdown" control that visibly cascades through OEE → andon → DIFOT live — the HTTP endpoint ships and is smoke-tested; the dashboard button and the visible cascade land in Phase 3
-
-<sub>The remaining Simulator requirements moved to Validated in Phase 1.</sub>
-
-**OEE Engine**
-- [ ] Ingestion worker subscribes MQTT → persists raw events → derives state intervals with loss categories in Postgres
-- [ ] Preferred OEE calculation (A×P×Q per oee.com/Vorne definitions) aggregated per line/shift, with built-in validation guard: Performance > 100% flags misconfigured Ideal Cycle Time
-- [ ] Correct loss classification: small stops → Performance loss; changeover → Availability loss (Setup & Adjustments), configurable "changeover as planned" policy + planned→unplanned transition on overage
+<sub>All Simulator requirements are Validated (Phase 1, plus SIM-05 in Phase 3). All OEE Engine requirements are Validated (Phase 2).</sub>
 
 **Dashboard (English UI)**
-- [ ] Real-time OEE waterfall (A×P×Q) per line/shift
 - [ ] Six Big Losses Pareto / Top Losses report, stackable per shift
-- [ ] Color-coded production timeline per line
-- [ ] Andon board: all lines on one screen — production state (Running/Down/Changeover/Break) + good count + target count, updating live (SSE)
 
 **DIFOT Module (differentiator)**
 - [ ] Simulated order book (demand per SKU/day) linked to production output → DIFOT % (in-full, on-time)
@@ -117,4 +118,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after Phase 1 completion*
+*Last updated: 2026-08-22 after Phase 3 completion*

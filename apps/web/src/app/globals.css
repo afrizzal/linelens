@@ -1,22 +1,51 @@
 @import "tailwindcss";
 
+/*
+ * Dark-first factory theme (03-02-PLAN.md Task 1). This is the ONLY place
+ * state colors are defined as raw values — every screen (andon, OEE
+ * waterfall, later the timeline in 03-03) must consume them via the
+ * `stateColor()` helper in components/ui/state-color.ts, never a hardcoded
+ * hex, so the andon/waterfall/timeline visuals can never drift apart.
+ *
+ * The hex values below are duplicated (not imported) into
+ * components/ui/state-color.ts's STATE_COLORS/LOSS_COLORS constants because
+ * ECharts renders to canvas and cannot resolve CSS custom properties at
+ * paint time — keep the two files in sync if a color ever changes.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0b0f14;
+  --panel: #121821;
+  --foreground: #e6edf3;
+
+  /* Andon/timeline state tokens (MachineState union, packages/contracts/src/states.ts) */
+  --state-execute: #22c55e;
+  --state-down: #ef4444;
+  --state-changeover: #f59e0b;
+  --state-break: #64748b;
+
+  /* OEE waterfall loss-bucket tokens (A/P/Q palette + productive green) */
+  --loss-availability: #ef4444;
+  --loss-performance: #f59e0b;
+  --loss-quality: #8b5cf6;
+  --productive: #22c55e;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-panel: var(--panel);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-state-execute: var(--state-execute);
+  --color-state-down: var(--state-down);
+  --color-state-changeover: var(--state-changeover);
+  --color-state-break: var(--state-break);
+
+  --color-loss-availability: var(--loss-availability);
+  --color-loss-performance: var(--loss-performance);
+  --color-loss-quality: var(--loss-quality);
+  --color-productive: var(--productive);
 }
 
 body {

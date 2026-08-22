@@ -5,9 +5,15 @@ import type { Plant } from './plant.js';
 
 /**
  * Tiny HTTP control server (node:http, port 4000): inject-breakdown, speed
- * change, clock introspection, health check. Not published on the host by
- * compose — reachable only from inside the compose network (web will proxy
- * in Phase 3).
+ * change, clock introspection, health check.
+ *
+ * SECURITY BOUNDARY (Phase 3 audit T-04): this port IS published to the host
+ * by docker-compose.yml (`4000:4000`) — the compose smoke test and manual
+ * `curl` demos need it. It is therefore unauthenticated and unthrottled on
+ * localhost, and `/control/*` must be treated as a trusted-network-only
+ * surface. Do not claim it is network-segmented. If this appliance is ever
+ * deployed beyond localhost, change the mapping to `expose:` or put auth in
+ * front of `/control/*` first.
  */
 export interface ControlDeps {
   plant: Plant;

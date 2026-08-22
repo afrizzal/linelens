@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import type { ShiftDef } from './calendar.js';
+// Self-referencing package-specifier import — see index.ts's file-header
+// comment (03-02-PLAN.md deviation, Rule 3).
+import type { ShiftDef } from '@linelens/contracts/calendar';
 
 /**
  * Calibration parameters for a single machine's simulated behavior. This is

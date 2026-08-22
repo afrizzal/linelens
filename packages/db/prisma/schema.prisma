@@ -8,8 +8,33 @@
 
 generator client {
   provider      = "prisma-client"
-  output        = "../generated/prisma"
-  moduleFormat  = "esm"
+  // Generated INSIDE src/ (not a sibling ../generated/) so it's covered by
+  // packages/db/tsconfig.json's existing `include: ["src", ...]` with no
+  // extra config, and every import stays within the package's source tree —
+  // 03-quick follow-up to 03-01's "Known Issues".
+  //
+  // Two fixes were needed together (each alone was insufficient — verified
+  // by testing each in isolation against a live docker stack):
+  //  1. `src/client.ts` reaches this generated client via a self-referencing
+  //     package-exports subpath (`@linelens/db/generated-client`, see that
+  //     file's comment), not a relative import — Turbopack cannot resolve a
+  //     RELATIVE import from a module reached via an exports-map subpath
+  //     into a sibling file one hop further.
+  //  2. `importFileExtension = ""` below — the generated client's OWN
+  //     internal relative imports (e.g. `./internal/prismaNamespace.js`)
+  //     hit the identical Turbopack limitation one level deeper: it cannot
+  //     resolve a `.js`-suffixed relative specifier to a sibling `.ts`
+  //     file via plain relative resolution (only via an exports-map
+  //     subpath, or an extensionless specifier it can extension-guess).
+  //     Stripping the extension lets Turbopack's native resolveExtensions
+  //     guessing find the sibling `.ts` files directly. This matches
+  //     Prisma's own e2e regression fixture for a monorepo+Next.js
+  //     indirect re-export chain (packages/client/tests/e2e/
+  //     nextjs-schema-not-found/20_monorepo-serverComponents-newGenerator-
+  //     reExportIndirect-ts), which sets the same flag for bundler compat.
+  output               = "../src/generated/prisma"
+  moduleFormat         = "esm"
+  importFileExtension  = ""
 }
 
 datasource db {
