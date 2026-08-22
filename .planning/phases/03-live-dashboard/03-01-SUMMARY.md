@@ -201,6 +201,10 @@ None - no external service configuration required.
 - **Blocker for 03-02/03-03:** the read-model routes must actually serve data before the andon board / OEE waterfall / timeline pages can render anything real. The Turbopack issue documented above needs to be resolved (or worked around) before those plans can be meaningfully demoed inside docker — `pnpm smoke` / any docker-based UAT will currently show blank/error states on every data-driven screen.
 - Sim-time and read-only-Prisma discipline gates are in place and grep-verified — future routes/plans should reuse the same patterns (view-column clamping over direct `sim_now()` calls; Prisma-only, no raw pg writes).
 
+## Self-Check: PASSED
+
+All 9 created files verified present on disk; all 5 commits (8fa6f9f, ecd9612, 1ef4a21, dcbcf5f, 12f167c) verified present in git history.
+
 ---
 *Phase: 03-live-dashboard*
 *Completed: 2026-08-22*
