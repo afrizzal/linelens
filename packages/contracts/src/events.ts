@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { MACHINE_STATES } from './states.js';
+// Self-referencing package-specifier import, not a relative './states.js'
+// path — see index.ts's file-header comment (03-02-PLAN.md deviation,
+// Rule 3: Turbopack cannot chase a relative .js->.ts import between
+// sibling files in this package, only exports-map subpaths).
+import { MACHINE_STATES } from '@linelens/contracts/states';
 
 /**
  * Telemetry event schema — PackTags-lite (Status + Admin subset), per
