@@ -8,7 +8,7 @@ status: planning
 stopped_at: Completed 02-03-PLAN.md (phase 02 gate passed)
 last_updated: "2026-08-21T23:56:57.259Z"
 last_activity: 2026-08-22
-last_activity_desc: Phase 02 complete, transitioned to Phase 03
+last_activity_desc: "Completed quick task 260822-f2w: patched 03-01-PLAN.md with Phase-02 sim-time contract deltas"
 progress:
   total_phases: 5
   completed_phases: 2
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 Phase: 03 — Live Dashboard — Vertical Slice
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-22 — Phase 02 complete, transitioned to Phase 03
+Last activity: 2026-08-22 — Completed quick task 260822-f2w: patched 03-01-PLAN.md with Phase-02 sim-time contract deltas
 
 Progress: [████░░░░░░] 43% (3/14 plans)
 
@@ -108,6 +108,12 @@ None yet.
 - ~~Full 5-service docker compose up (app image build) unverified~~ **RESOLVED 2026-07-25.** Automated as `pnpm smoke` (Playwright, `tests/smoke/compose-stack.spec.ts`) instead of deferring to a manual check — which is how two real defects were found: no `.dockerignore` (host `node_modules` clobbered the image's, crash-looping all three app services on `MODULE_NOT_FOUND`) and simulator port `expose`d but not published. Fixed in `f494f54`. The TLS-interception build failure was genuinely environmental and is now handled by an opt-in `docker/certs/` → `NODE_EXTRA_CA_CERTS` step that no-ops on a clean machine.
 - Lesson for later phases: the unit suite stayed 56/56 green while the entire appliance was unbootable. Run `pnpm smoke` after any phase that touches compose, the Dockerfile, or a service entrypoint — and extend the suite as Phase 2/3 add the worker loop and dashboard.
 - `worker` currently exits 0 on `docker compose up` (Phase 1 skeleton, no domain logic). Phase 2 must give it a real MQTT subscribe loop; add a `worker`-stays-up assertion to the smoke suite then.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260822-f2w | Patch 03-01-PLAN.md with the two Phase-02 sim-time contract deltas (`sim_now() AT TIME ZONE 'UTC'` cast + raw-pg ISO-'Z' binding) and bring `apps/web/package.json` into scope | 2026-08-22 | deff23a | [260822-f2w-patch-planning-phases-03-live-dashboard-](./quick/260822-f2w-patch-planning-phases-03-live-dashboard-/) |
 
 ## Session Continuity
 
