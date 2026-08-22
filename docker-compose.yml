@@ -64,10 +64,13 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://linelens:linelens-dev@db:5432/linelens}
       MQTT_URL: ${MQTT_URL:-mqtt://mqtt:1883}
+      SIMULATOR_URL: ${SIMULATOR_URL:-http://simulator:4000}
     depends_on:
       db:
         condition: service_healthy
       mqtt:
+        condition: service_healthy
+      simulator:
         condition: service_healthy
 
   web:

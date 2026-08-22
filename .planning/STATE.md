@@ -2,16 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-25T14:17:23.241Z"
-last_activity: 2026-07-25
+current_phase: 03
+current_phase_name: Live Dashboard — Vertical Slice
+status: planning
+stopped_at: Completed 02-03-PLAN.md (phase 02 gate passed)
+last_updated: "2026-08-21T23:56:57.259Z"
+last_activity: 2026-08-22
+last_activity_desc: Phase 02 complete, transitioned to Phase 03
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 3
-  percent: 21
+  completed_plans: 6
 ---
 
 # Project State
@@ -21,22 +23,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** A 60-second demo makes "machine downtime = broken customer promises" viscerally clear — breakdown on Line 2 → 3 orders late this week — with industry-correct OEE mechanics.
-**Current focus:** Phase 02 — OEE Engine (Credibility Gate)
+**Current focus:** Phase 02 — oee-engine
 
 ## Current Position
 
-Phase: 02
-Plan: 0 of 3 in Phase 02
-Status: Phase 01 complete and verified (status: passed; compose smoke test automated the last human-UAT item). Ready to execute Phase 02 — plans already authored, do NOT run /gsd-plan-phase.
-Last activity: 2026-07-25
+Phase: 03 — Live Dashboard — Vertical Slice
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-22 — Phase 02 complete, transitioned to Phase 03
 
-Progress: [██░░░░░░░░] 21% (3/14 plans)
+Progress: [████░░░░░░] 43% (3/14 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 3
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -44,7 +46,7 @@ Progress: [██░░░░░░░░] 21% (3/14 plans)
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 02 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -55,6 +57,13 @@ Progress: [██░░░░░░░░] 21% (3/14 plans)
 | Phase 01 P1 | 55 | 2 tasks | 43 files |
 | Phase 01-foundation-living-plant P2 | 42min | 4 tasks | 16 files |
 | Phase 01-foundation-living-plant P3 | 75min | 4 tasks | 14 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 02 P1 | 95min | 3 tasks | 20 files |
+| Phase 02-oee-engine P2 | 70min | 4 tasks | 18 files |
+| Phase 02 P3 | 165min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +83,14 @@ Recent decisions affecting current work:
 - [Phase 01]: Vitest 4 workspace uses test.projects in vitest.config.ts; vitest.workspace.ts kept as a pointer since the standalone workspace-file format is deprecated in v4
 - [Phase 01-foundation-living-plant]: Contracts package (@linelens/contracts) locked: states/losses/reasons/events/topics/sim-clock/calendar/plant-config as the single source for simulator, worker, and web
 - [Phase 01-foundation-living-plant]: Simulator: discrete-event scheduler (not fixed-tick) with execute-time-domain countdown budgets makes the plant provably speed-invariant
+- [Phase ?]: Prisma table names snake_case via @@map; columns left at default camelCase (quoted) to match the plan's literal sim_now() SQL body verbatim
+- [Phase ?]: Prisma client generation is an explicit Dockerfile step after COPY . . (never a postinstall hook) since schema.prisma isn't present during the earlier package.json-only install layer
+- [Phase ?]: mosquitto.conf max_queued_messages set to 0 (unlimited) after a Testcontainers integration test proved the 1000 default silently drops backlog for an offline persistent session, violating the lossless-ingestion invariant
+- [Phase ?]: 02-02: Convention for 02-03 — sim-time columns stay TIMESTAMP(3) WITHOUT TIME ZONE (matching machine_event.simTime); every 02-03 SQL comparison against sim_now() must use sim_now() AT TIME ZONE 'UTC', proven by a regression test under SET TimeZone='Asia/Jakarta'
+- [Phase ?]: 02-02: raw pg.Client Date-parameter binding is LOCAL-OS-TZ-dependent for naive timestamp columns (unlike Prisma's UTC-safe serialization) — always bind ISO 'Z'-suffixed strings, never Date objects, through raw pg
+- [Phase ?]: 02-03: OEE SQL views driven by master data + LATERAL correlated subqueries (not a DISTINCT scan over machine_event) — required to hit <50ms EXPLAIN budget at demo volume (was 2.29s)
+- [Phase ?]: 02-03: loss_event.stateIntervalId left unpopulated (out of this plan's file scope) — Phase 4 DIFOT drill-down should know this traceability column is dead before planning around it
+- [Phase ?]: 02-03: live OEE bands (pristine window >=2026-01-19) show L2/L3 'typical' profile averaging 1.2-1.6pp above the 50-65% target band — simulator calibration note, not an engine defect
 
 ### Pending Todos
 
@@ -94,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-25T13:07:38.231Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-08-21T18:07:52.811Z
+Stopped at: Completed 02-03-PLAN.md (phase 02 gate passed)
 Resume file: None

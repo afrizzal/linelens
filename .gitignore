@@ -1,6 +1,7 @@
 node_modules/
 .next/
 dist/
+packages/db/generated/
 .env
 postgres-data/
 mosquitto-data/
@@ -19,3 +20,6 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+
+# GSD tooling runtime state (isolation sentinel, per-run scratch) — machine-local
+.gsd/
