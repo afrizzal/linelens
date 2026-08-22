@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 03
 current_phase_name: live-dashboard
-status: executing
-stopped_at: Completed 03-02-PLAN.md (andon board + OEE waterfall, verified live in docker)
-last_updated: "2026-08-22T11:04:55.670Z"
+status: verifying
+stopped_at: Completed 03-03-PLAN.md (production timeline + inject-breakdown + human-verified cascade) — Phase 3 execution complete, ready for verification
+last_updated: "2026-08-22T13:42:02.241Z"
 last_activity: 2026-08-22
 last_activity_desc: "Completed quick task 260822-f2w: patched 03-01-PLAN.md with Phase-02 sim-time contract deltas"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 Phase: 03 (live-dashboard) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-22 — Phase 03 execution started
 
-Progress: [██████░░░░] 57% (3/14 plans)
+Progress: [██████░░░░] 64% (3/14 plans)
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [██████░░░░] 57% (3/14 plans)
 | Phase 02 P3 | 165min | 3 tasks | 4 files |
 | Phase 03 P1 | 73min | 3 tasks | 12 files |
 | Phase 03 P2 | 90min | 3 tasks | 27 files |
+| Phase 03 P3 | 25min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-02: stateColor()/stateLabel() (components/ui/state-color.ts) is the single source of truth for state colors — DOM via Tailwind --color-state-* tokens, ECharts canvas via matching hex constants; must stay in sync with globals.css manually
 - [Phase ?]: 03-02: line-level A/P/Q waterfall loss buckets derived client-side (lib/oee-waterfall.ts) from v_line_shift_oee's aggregated sums using the same per-machine formula in views.sql, since the view has no aLossSec/pLossSec/qLossSec columns at line level — avoids a schema/migration change for a UI plan
 - [Phase ?]: 03-02: @linelens/contracts internal modules now self-import via '@linelens/contracts/<name>' package specifiers (8 new exports subpaths) instead of relative './x.js' paths — Turbopack cannot resolve a relative .js->.ts hop between sibling files in a workspace TS-source package, same class of issue 03-01 hit in @linelens/db
+- [Phase ?]: 03-03: ECharts custom-series renderItem Gantt pattern proven end-to-end (spike -> real component -> live human verification) — the plan's flagged front-loaded risk resolved; no future plan needs to re-derisk the charting library choice
+- [Phase ?]: 03-03: GET /api/timeline widened to include shift-window/break-calendar metadata (Rule 2 deviation) so the Gantt's break shading and x-axis clamp both work
+- [Phase ?]: 03-03: POST /api/control/inject established as the thin-proxy pattern for demo controls (web forwards to SIMULATOR_URL, browser never talks to the simulator container directly) — reusable for future demo controls
 
 ### Pending Todos
 
@@ -118,6 +122,7 @@ None yet.
 - `worker` currently exits 0 on `docker compose up` (Phase 1 skeleton, no domain logic). Phase 2 must give it a real MQTT subscribe loop; add a `worker`-stays-up assertion to the smoke suite then.
 - ~~03-01: Turbopack cannot resolve packages/db/generated/prisma/client.ts through @linelens/db inside apps/web's next dev (docker) — 4 read-model routes return 500 live~~ **RESOLVED 2026-08-22 (40b1308).** Verified live in docker: /api/andon and /api/sim-clock 200 with real data; /api/oee and /api/timeline 400 without required query params (expected) and 200 with valid lineId/shiftDate/shiftId; /api/stream not regressed; worker + simulator start clean; 90 tests pass.
 - Toolchain gotcha (this machine, pre-existing): plain `pnpm` — even Volta-shimmed — spawns children under Node v20.20.2 rather than the pinned 24.10.0, which breaks jsdom/undici in apps/web/test. Use `volta run --node 24.10.0 -- pnpm test` for a clean run. Not fixed; unrelated to any phase-03 change.
+- 03-03: OEE/timeline page defaults land on an empty shift during sim 23:00-07:00 (8/24 real min) — N/A render is correct per project rule but a demo-credibility risk (1-in-3 chance of blank screen). Deferred by explicit user decision at the 03-03 checkpoint; see deferred-items.md and WINDOWS.md ledger entry 3. Not blocking Phase 3.
 
 ### Quick Tasks Completed
 
@@ -127,6 +132,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-22T11:04:55.657Z
-Stopped at: Completed 03-02-PLAN.md (andon board + OEE waterfall, verified live in docker)
+Last session: 2026-08-22T13:42:02.205Z
+Stopped at: Completed 03-03-PLAN.md (production timeline + inject-breakdown + human-verified cascade) — Phase 3 execution complete, ready for verification
 Resume file: None
