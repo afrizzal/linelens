@@ -1,10 +1,16 @@
 /**
  * POST /api/control/inject {lineId} — thin proxy to the simulator's
  * control server (03-03-PLAN.md Task 2, SIM-05). The web container never
- * talks MQTT/DB-write directly for this action (ARCHITECTURE boundary: the
- * simulator's control server is only reachable inside the compose network,
- * not published to the host) — this route is the ONLY bridge from the
- * browser to `POST http://simulator:4000/control/inject-breakdown`.
+ * talks MQTT/DB-write directly for this action — this route proxies to
+ * `POST http://simulator:4000/control/inject-breakdown` over the compose
+ * network.
+ *
+ * SECURITY NOTE (Phase 3 audit T-04): this route is the only bridge the
+ * BROWSER uses, but it is not the only path to the control server — compose
+ * publishes simulator port 4000 to the host for the smoke test, so
+ * `/control/*` is also reachable directly via localhost, bypassing this
+ * proxy and its client-side cooldown entirely. Accepted for a localhost
+ * demo appliance; revisit before any non-local deployment.
  */
 export const dynamic = "force-dynamic";
 
