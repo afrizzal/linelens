@@ -24,6 +24,16 @@ import { db } from "@/lib/db";
  * views.sql, same line as the query below). If no
  * shift is currently active (between shifts), goodCount/targetCount are
  * `null` (N/A) rather than a false 0.
+ *
+ * 03-02-PLAN.md Task 2 deviation (Rule 2 - missing critical functionality):
+ * the andon tile's "machines strip: small per-machine state dots" needs
+ * every open interval per machine, not just the collapsed per-line worst
+ * state this route originally returned. Rather than a second DISTINCT-ON
+ * query, the open-interval query below now returns ALL open intervals (one
+ * per machine — cheap, a handful of rows at demo scale) and the worst-state
+ * reduction moves into JS, preserving the exact same priority ordering
+ * (DOWN > CHANGEOVER > BREAK > EXECUTE, earliest-start tie-break) while also
+ * exposing the full per-machine array as `machines`.
  */
 export const dynamic = "force-dynamic";
 
@@ -59,20 +69,12 @@ export async function GET(): Promise<Response> {
     `,
     db.line.findMany({ orderBy: { id: "asc" } }),
     db.$queryRaw<OpenIntervalRow[]>`
-      SELECT DISTINCT ON (si."lineId")
+      SELECT
         si."lineId" AS "lineId", si."machineId" AS "machineId", si.state AS state,
         si."reasonCode" AS "reasonCode", si."startTime" AS since
       FROM state_interval si
       WHERE si."endTime" IS NULL
-      ORDER BY si."lineId",
-        CASE si.state
-          WHEN 'DOWN' THEN 0
-          WHEN 'CHANGEOVER' THEN 1
-          WHEN 'BREAK' THEN 2
-          WHEN 'EXECUTE' THEN 3
-          ELSE 4
-        END,
-        si."startTime" ASC
+      ORDER BY si."lineId", si."machineId"
     `,
     db.machine.findMany({
       select: { id: true, lineId: true, product: { select: { idealCycleTimeSec: true } } },
@@ -93,8 +95,24 @@ export async function GET(): Promise<Response> {
     `;
   }
 
+  const STATE_PRIORITY: Record<string, number> = { DOWN: 0, CHANGEOVER: 1, BREAK: 2, EXECUTE: 3 };
+  const worstOf = (rows: OpenIntervalRow[]): OpenIntervalRow | null => {
+    if (rows.length === 0) return null;
+    return [...rows].sort((a, b) => {
+      const pa = STATE_PRIORITY[a.state] ?? 4;
+      const pb = STATE_PRIORITY[b.state] ?? 4;
+      if (pa !== pb) return pa - pb;
+      return a.since.getTime() - b.since.getTime();
+    })[0];
+  };
+
   const goodByLine = new Map(goodCounts.map((r) => [r.lineId, r.goodCnt ?? 0]));
-  const openByLine = new Map(openIntervals.map((r) => [r.lineId, r]));
+  const openIntervalsByLine = new Map<string, OpenIntervalRow[]>();
+  for (const row of openIntervals) {
+    const arr = openIntervalsByLine.get(row.lineId) ?? [];
+    arr.push(row);
+    openIntervalsByLine.set(row.lineId, arr);
+  }
   const ictsByLine = new Map<string, number[]>();
   for (const m of machines) {
     const ict = m.product?.idealCycleTimeSec;
@@ -105,7 +123,8 @@ export async function GET(): Promise<Response> {
   }
 
   const result = lines.map((line) => {
-    const open = openByLine.get(line.id) ?? null;
+    const lineIntervals = openIntervalsByLine.get(line.id) ?? [];
+    const open = worstOf(lineIntervals);
     const icts = ictsByLine.get(line.id) ?? [];
     const targetCount = currentShift
       ? icts.reduce((sum, ict) => sum + (ict > 0 ? Math.floor(currentShift.pptSec / ict) : 0), 0)
@@ -121,6 +140,11 @@ export async function GET(): Promise<Response> {
       targetCount,
       shiftDate: currentShift?.shiftDate ?? null,
       shiftId: currentShift?.shiftId ?? null,
+      // Machines strip (03-02-PLAN.md Task 2 deviation, see file header).
+      machines: lineIntervals
+        .slice()
+        .sort((a, b) => a.machineId.localeCompare(b.machineId))
+        .map((m) => ({ machineId: m.machineId, state: m.state })),
     };
   });
 
