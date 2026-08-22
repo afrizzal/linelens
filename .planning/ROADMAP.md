@@ -67,7 +67,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A viewer sees a color-coded production timeline per line (state bands over sim-time).
   4. A viewer triggers "Inject breakdown" (dashboard button or HTTP endpoint) on a chosen line and watches the cascade — OEE drops, the andon tile turns red — propagate live within seconds.
 
-**Plans**: 3 — 03-01 SSE infra + read-model APIs · 03-02 shell+andon+waterfall · 03-03 timeline (ECharts Gantt spike) + inject control + human cascade sign-off
+**Plans**: 1/3 plans executed
+
+- [x] 03-01-PLAN.md
+- [ ] 03-02-PLAN.md
+- [ ] 03-03-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 4: DIFOT, Losses Pareto & Daily Direction Setting
@@ -108,6 +113,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation & Living Plant | 3/3 | Complete | 2026-07-25 |
 | 2. OEE Engine (Credibility Gate) | 3/3 | Complete    | 2026-08-22 |
-| 3. Live Dashboard — Vertical Slice | 0/3 | Planned | - |
+| 3. Live Dashboard — Vertical Slice | 1/3 | In Progress|  |
 | 4. DIFOT, Losses Pareto & DDS | 0/3 | Planned | - |
 | 5. Distribution | 0/2 | Planned | - |

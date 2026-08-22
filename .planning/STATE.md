@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: live-dashboard
 status: executing
-stopped_at: Completed 02-03-PLAN.md (phase 02 gate passed)
-last_updated: "2026-08-22T08:12:03.620Z"
+stopped_at: Completed 03-01-PLAN.md (SSE/LISTEN pipeline verified; read-model routes blocked by Turbopack issue, see blockers)
+last_updated: "2026-08-22T09:32:13.016Z"
 last_activity: 2026-08-22
 last_activity_desc: "Completed quick task 260822-f2w: patched 03-01-PLAN.md with Phase-02 sim-time contract deltas"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 14
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 ## Current Position
 
 Phase: 03 (live-dashboard) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 03
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-08-22 — Phase 03 execution started
 
-Progress: [████░░░░░░] 43% (3/14 plans)
+Progress: [█████░░░░░] 50% (3/14 plans)
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [████░░░░░░] 43% (3/14 plans)
 | Phase 02 P1 | 95min | 3 tasks | 20 files |
 | Phase 02-oee-engine P2 | 70min | 4 tasks | 18 files |
 | Phase 02 P3 | 165min | 3 tasks | 4 files |
+| Phase 03 P1 | 73min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-03: OEE SQL views driven by master data + LATERAL correlated subqueries (not a DISTINCT scan over machine_event) — required to hit <50ms EXPLAIN budget at demo volume (was 2.29s)
 - [Phase ?]: 02-03: loss_event.stateIntervalId left unpopulated (out of this plan's file scope) — Phase 4 DIFOT drill-down should know this traceability column is dead before planning around it
 - [Phase ?]: 02-03: live OEE bands (pristine window >=2026-01-19) show L2/L3 'typical' profile averaging 1.2-1.6pp above the 50-65% target band — simulator calibration note, not an engine defect
+- [Phase ?]: 03-01: Andon 'line state' = worst-open-state-wins across a line's machines (DOWN > CHANGEOVER > BREAK > EXECUTE) — each line has 2 machines producing in parallel per plant.config.json
+- [Phase ?]: 03-01: web-consuming workspace TS packages (@linelens/db, @linelens/contracts) need next.config.ts transpilePackages + an export-subpath bypass around export * barrels for Turbopack's dev bundler — apps/worker/apps/simulator never hit this since they run via tsx
+- [Phase ?]: 03-01: KNOWN ISSUE carried forward — /api/andon, /api/oee, /api/timeline, /api/sim-clock return HTTP 500 in docker next dev (Turbopack cannot resolve packages/db/generated/prisma/client.ts through the workspace package chain); blocks 03-02/03-03 live verification until resolved, see 03-01-SUMMARY.md
 
 ### Pending Todos
 
@@ -108,6 +112,7 @@ None yet.
 - ~~Full 5-service docker compose up (app image build) unverified~~ **RESOLVED 2026-07-25.** Automated as `pnpm smoke` (Playwright, `tests/smoke/compose-stack.spec.ts`) instead of deferring to a manual check — which is how two real defects were found: no `.dockerignore` (host `node_modules` clobbered the image's, crash-looping all three app services on `MODULE_NOT_FOUND`) and simulator port `expose`d but not published. Fixed in `f494f54`. The TLS-interception build failure was genuinely environmental and is now handled by an opt-in `docker/certs/` → `NODE_EXTRA_CA_CERTS` step that no-ops on a clean machine.
 - Lesson for later phases: the unit suite stayed 56/56 green while the entire appliance was unbootable. Run `pnpm smoke` after any phase that touches compose, the Dockerfile, or a service entrypoint — and extend the suite as Phase 2/3 add the worker loop and dashboard.
 - `worker` currently exits 0 on `docker compose up` (Phase 1 skeleton, no domain logic). Phase 2 must give it a real MQTT subscribe loop; add a `worker`-stays-up assertion to the smoke suite then.
+- 03-01: Turbopack cannot resolve packages/db/generated/prisma/client.ts through @linelens/db inside apps/web's next dev (docker) — 4 read-model routes return 500 live; code is typecheck-clean and gate-clean but unverified at runtime. Must resolve before 03-02/03-03 can demo real data.
 
 ### Quick Tasks Completed
 
@@ -117,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T18:07:52.811Z
-Stopped at: Completed 02-03-PLAN.md (phase 02 gate passed)
+Last session: 2026-08-22T09:32:12.991Z
+Stopped at: Completed 03-01-PLAN.md (SSE/LISTEN pipeline verified; read-model routes blocked by Turbopack issue, see blockers)
 Resume file: None
