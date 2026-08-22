@@ -85,12 +85,18 @@ export async function GET(): Promise<Response> {
 
   let goodCounts: GoodCountRow[] = [];
   if (currentShift) {
+    // Sim-time SQL contract (STATE.md 02-02 decision): raw pg Date-parameter
+    // binding is LOCAL-OS-TZ-dependent for naive TIMESTAMP columns (unlike
+    // Prisma's UTC-safe decoding) — always bind ISO 'Z'-suffixed strings,
+    // never Date objects, through raw pg. currentShift.shiftStart/effectiveEnd
+    // are Date objects decoded from the earlier v_shift_windows query; do not
+    // "simplify" this back to binding them directly.
     goodCounts = await db.$queryRaw<GoodCountRow[]>`
       SELECT "lineId" AS "lineId", SUM(COALESCE("goodDelta", 0))::double precision AS "goodCnt"
       FROM machine_event
       WHERE kind = 'COUNTS'
-        AND "simTime" >= ${currentShift.shiftStart}
-        AND "simTime" < ${currentShift.effectiveEnd}
+        AND "simTime" >= ${currentShift.shiftStart.toISOString()}
+        AND "simTime" < ${currentShift.effectiveEnd.toISOString()}
       GROUP BY "lineId"
     `;
   }
