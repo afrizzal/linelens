@@ -25,10 +25,10 @@ Requirement quality bar: specific, testable, viewer-centric (the "user" of this 
 
 ### Dashboard (DASH)
 
-- [ ] **DASH-01**: A viewer sees a real-time OEE waterfall (A×P×Q) per line/shift
+- [x] **DASH-01**: A viewer sees a real-time OEE waterfall (A×P×Q) per line/shift
 - [ ] **DASH-02**: A viewer sees a Six Big Losses Pareto / Top Losses report, stackable per shift
 - [ ] **DASH-03**: A viewer sees a color-coded production timeline per line (state bands over time)
-- [ ] **DASH-04**: A viewer sees an andon board with all lines on one screen — production state (Running/Down/Changeover/Break) + good count + target count — updating live via SSE
+- [x] **DASH-04**: A viewer sees an andon board with all lines on one screen — production state (Running/Down/Changeover/Break) + good count + target count — updating live via SSE
 
 ### DIFOT Module (DIFOT)
 
@@ -83,9 +83,9 @@ Every v1 requirement maps to exactly one phase. Coverage: 24/24 mapped.
 | ENG-04 | Phase 2 — OEE Engine (Credibility Gate) | Complete |
 | ENG-05 | Phase 2 — OEE Engine (Credibility Gate) | Complete |
 | ENG-06 | Phase 2 — OEE Engine (Credibility Gate) | Complete |
-| DASH-01 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
+| DASH-01 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
 | DASH-03 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
-| DASH-04 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
+| DASH-04 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
 | SIM-05 | Phase 3 — Live Dashboard (Vertical Slice) | Pending |
 | DASH-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
 | DIFOT-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |

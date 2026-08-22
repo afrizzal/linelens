@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: live-dashboard
 status: executing
-stopped_at: Completed 03-01-PLAN.md (SSE/LISTEN pipeline verified; read-model routes blocked by Turbopack issue, see blockers)
-last_updated: "2026-08-22T09:32:13.016Z"
+stopped_at: Completed 03-02-PLAN.md (andon board + OEE waterfall, verified live in docker)
+last_updated: "2026-08-22T11:04:55.670Z"
 last_activity: 2026-08-22
 last_activity_desc: "Completed quick task 260822-f2w: patched 03-01-PLAN.md with Phase-02 sim-time contract deltas"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 14
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 ## Current Position
 
 Phase: 03 (live-dashboard) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-22 — Phase 03 execution started
 
-Progress: [█████░░░░░] 50% (3/14 plans)
+Progress: [██████░░░░] 57% (3/14 plans)
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [█████░░░░░] 50% (3/14 plans)
 | Phase 02-oee-engine P2 | 70min | 4 tasks | 18 files |
 | Phase 02 P3 | 165min | 3 tasks | 4 files |
 | Phase 03 P1 | 73min | 3 tasks | 12 files |
+| Phase 03 P2 | 90min | 3 tasks | 27 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-01: Andon 'line state' = worst-open-state-wins across a line's machines (DOWN > CHANGEOVER > BREAK > EXECUTE) — each line has 2 machines producing in parallel per plant.config.json
 - [Phase ?]: 03-01: web-consuming workspace TS packages (@linelens/db, @linelens/contracts) need next.config.ts transpilePackages + an export-subpath bypass around export * barrels for Turbopack's dev bundler — apps/worker/apps/simulator never hit this since they run via tsx
 - [Phase ?]: 03-01 blocker RESOLVED in 40b1308 — Turbopack cannot resolve a `.js`-suffixed relative import to a sibling `.ts` file EXCEPT through a package.json `exports` subpath. Two fixes were both required: (a) src/client.ts reaches the generated client via a self-referencing `@linelens/db/generated-client` exports subpath, not a relative import; (b) `importFileExtension = ""` on the Prisma generator so the generated client's own internal relative imports are extensionless and hit Turbopack's extension-guessing. Generator output also moved to `../src/generated/prisma`. All four read-model routes now 200 with real data in docker.
+- [Phase ?]: 03-02: stateColor()/stateLabel() (components/ui/state-color.ts) is the single source of truth for state colors — DOM via Tailwind --color-state-* tokens, ECharts canvas via matching hex constants; must stay in sync with globals.css manually
+- [Phase ?]: 03-02: line-level A/P/Q waterfall loss buckets derived client-side (lib/oee-waterfall.ts) from v_line_shift_oee's aggregated sums using the same per-machine formula in views.sql, since the view has no aLossSec/pLossSec/qLossSec columns at line level — avoids a schema/migration change for a UI plan
+- [Phase ?]: 03-02: @linelens/contracts internal modules now self-import via '@linelens/contracts/<name>' package specifiers (8 new exports subpaths) instead of relative './x.js' paths — Turbopack cannot resolve a relative .js->.ts hop between sibling files in a workspace TS-source package, same class of issue 03-01 hit in @linelens/db
 
 ### Pending Todos
 
@@ -123,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-22T09:32:12.991Z
-Stopped at: Completed 03-01-PLAN.md (SSE/LISTEN pipeline verified; read-model routes blocked by Turbopack issue, see blockers)
+Last session: 2026-08-22T11:04:55.657Z
+Stopped at: Completed 03-02-PLAN.md (andon board + OEE waterfall, verified live in docker)
 Resume file: None
