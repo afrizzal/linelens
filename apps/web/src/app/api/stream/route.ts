@@ -30,7 +30,12 @@ export async function GET(request: Request): Promise<Response> {
     // Response + ReadableStream).
     start(controller) {
       const send = (event: string, data: unknown): void => {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          // Controller already closed — a NOTIFY-triggered change event raced
+          // the abort/close path; abort cleanup will run momentarily.
+        }
       };
 
       const onChange = (payload: ChangePayload): void => {
@@ -42,7 +47,12 @@ export async function GET(request: Request): Promise<Response> {
 
       // Defeats the well-known ~35s idle proxy/browser timeout (STACK.md).
       const pingTimer = setInterval(() => {
-        controller.enqueue(encoder.encode(`: ping\n\n`));
+        try {
+          controller.enqueue(encoder.encode(`: ping\n\n`));
+        } catch {
+          // Controller already closed — a ping tick raced the abort/close
+          // path; abort cleanup will run momentarily.
+        }
       }, PING_INTERVAL_MS);
 
       const cleanup = (): void => {
