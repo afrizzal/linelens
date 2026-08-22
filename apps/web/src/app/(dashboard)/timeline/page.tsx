@@ -6,6 +6,7 @@ import { useSimClock } from "@/hooks/use-sim-clock";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Gantt } from "@/components/timeline/gantt";
+import { InjectButton } from "@/components/inject-button";
 import type { TimelineBreakLike, TimelineIntervalLike } from "@/lib/timeline-data";
 
 interface AndonLineSummary {
@@ -82,6 +83,7 @@ export default function TimelinePage() {
   }, [fetchTimeline]);
 
   const hasData = Boolean(timeline?.shiftStart && timeline?.shiftEnd && timeline.intervals.length > 0);
+  const activeLineName = lines.find((l) => l.lineId === lineId)?.lineName;
 
   return (
     <div className="space-y-6">
@@ -109,6 +111,7 @@ export default function TimelinePage() {
             onChange={(e) => setShiftDate(e.target.value)}
             className="rounded-md border border-white/15 bg-panel px-3 py-1.5 text-sm text-foreground outline-none focus:border-white/30"
           />
+          {lineId && <InjectButton lineId={lineId} lineName={activeLineName} />}
         </div>
       </div>
 

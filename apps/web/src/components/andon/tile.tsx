@@ -1,5 +1,6 @@
 import { REASON_BY_CODE } from "@linelens/contracts";
 import { stateColor, stateLabel } from "@/components/ui/state-color";
+import { InjectButton } from "@/components/inject-button";
 
 export interface AndonMachine {
   machineId: string;
@@ -52,6 +53,7 @@ export function AndonTile({ line, simNow }: { line: AndonLine; simNow: Date | nu
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-foreground/70">{line.lineName}</span>
+        <InjectButton lineId={line.lineId} lineName={line.lineName} compact />
       </div>
 
       <div
