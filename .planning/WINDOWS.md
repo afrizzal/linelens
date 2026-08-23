@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 10
+open_count: 9
 waived_count: 0
-fixed_count: 1
+fixed_count: 2
 total_count: 11
-last_updated: 2026-08-23T06:20:34.691Z
+last_updated: 2026-08-23T08:33:14.015Z
 ---
 
 # Broken Windows Ledger
@@ -25,7 +25,7 @@ last_updated: 2026-08-23T06:20:34.691Z
 | 8 | 04 | unrun-verify | apps/web/src/app/(dashboard)/orders/page.tsx |  | Plan 04-01 Task 3 <verify> 'inject-breakdown on a line, wait ~1 sim-day -> that line's product shows lower DIFOT contribution' was not observed live within the executor's time budget. Indirect confidence: a live ~90min sim run already produced natural AT_RISK orders on CYC-C, and the fixture-level FIFO/status unit tests cover all four v_order_status branches. | open |  | 2026-08-23T02:29:47.920Z |  |
 | 9 | 04 | unrun-verify | apps/web/src/app/(dashboard)/orders/[id]/page.tsx |  | Plan 04-02 overall <verification> 'Live demo check: inject on L2 -> within ~1 sim-day an L2-product order shows LATE with the injected breakdown top-ranked in its drill-down' was not observed against the running docker compose stack within the executor's time budget (Task 3's causality.test.ts proves the mechanism against the real pipeline instead -- 4/4 tests green). Live spot-check DID confirm /api/orders/[id] returns real order_loss_drilldown data (12 ranked loss rows, correct shape) for an existing ON_TIME order against a live docker stack. | open |  | 2026-08-23T05:48:13.149Z |  |
 | 10 | 04 | todo | apps/worker/src/orders/allocate.ts |  | allocateGoodProduction re-fetches every open order's full allocation list (findMany with include:allocations) on EVERY COUNTS event with goodDelta>0 -- cost grows with open-order backlog depth. Confirmed as a real, reproducible scaling characteristic while building 04-02 Task 3's causality test: a full 8-machine/48-sim-hour scenario did not finish within a 30-minute budget; a scoped-down 4-machine/16-sim-hour scenario took ~5-8 min per run. Already partially mitigated by 04-01's 5s->30s transaction timeout bump. Not blocking at demo scale (a handful of lines/machines, bounded sim history per PROJECT.md), but would need a scoped/paginated open-orders query before a much larger order book or longer-running deployment. | open |  | 2026-08-23T05:48:14.058Z |  |
-| 11 | 04 | unrun-verify | apps/web/src/app/api/dds/route.ts |  | Live docker check of /api/dds's non-null Delivery path (DIFOT%/lateCount populated, and a line DIFOT<80% escalation firing) was not observed within the executor's time budget -- the pinned warm-start sim-day (2026-01-05) has zero orders due yet (due dates start 2026-01-07+), so the live spot-check only exercised the N/A path (which caught and fixed a real 0-vs-null bug, see 9d516fe). Indirect confidence: /api/orders?day=2026-01-08 confirmed real DIFOT 72.7% (11 due, 8 on-time) data exists in the running stack for when sim time reaches that day, and deriveEscalations/generateDdsActions have 18 unit tests covering the non-null paths including the exact DIFOT<80% threshold. | open |  | 2026-08-23T06:20:34.691Z |  |
+| 11 | 04 | unrun-verify | apps/web/src/app/api/dds/route.ts |  | Live docker check of /api/dds's non-null Delivery path (DIFOT%/lateCount populated, and a line DIFOT<80% escalation firing) was not observed within the executor's time budget -- the pinned warm-start sim-day (2026-01-05) has zero orders due yet (due dates start 2026-01-07+), so the live spot-check only exercised the N/A path (which caught and fixed a real 0-vs-null bug, see 9d516fe). Indirect confidence: /api/orders?day=2026-01-08 confirmed real DIFOT 72.7% (11 due, 8 on-time) data exists in the running stack for when sim time reaches that day, and deriveEscalations/generateDdsActions have 18 unit tests covering the non-null paths including the exact DIFOT<80% threshold. | fixed |  | 2026-08-23T06:20:34.691Z | 2026-08-23T08:33:14.015Z |
 
 ````json
 [
@@ -156,10 +156,10 @@ last_updated: 2026-08-23T06:20:34.691Z
     "file": "apps/web/src/app/api/dds/route.ts",
     "line": null,
     "description": "Live docker check of /api/dds's non-null Delivery path (DIFOT%/lateCount populated, and a line DIFOT<80% escalation firing) was not observed within the executor's time budget -- the pinned warm-start sim-day (2026-01-05) has zero orders due yet (due dates start 2026-01-07+), so the live spot-check only exercised the N/A path (which caught and fixed a real 0-vs-null bug, see 9d516fe). Indirect confidence: /api/orders?day=2026-01-08 confirmed real DIFOT 72.7% (11 due, 8 on-time) data exists in the running stack for when sim time reaches that day, and deriveEscalations/generateDdsActions have 18 unit tests covering the non-null paths including the exact DIFOT<80% threshold.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-23T06:20:34.691Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-23T08:33:14.015Z"
   }
 ]
 ````
