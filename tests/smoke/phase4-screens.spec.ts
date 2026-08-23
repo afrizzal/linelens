@@ -379,4 +379,112 @@ test.describe('phase4 screens', () => {
     const categoryTotalMin = categoryMinutes.reduce((a, b) => a + b, 0);
     expect(Math.abs(categoryTotalMin - apiTotalMin)).toBeLessThan(0.5);
   });
+
+  test('dds board resolves yesterday correctly and cross-checks every tile against /api/dds', async ({ page, request }, testInfo) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await page.goto('/dds', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('dds-day')).toBeVisible({ timeout: 15_000 });
+
+    let dayText = await page.getByTestId('dds-day').innerText();
+    let uiDay = dayText.replace('Yesterday: ', '').trim();
+
+    let apiRes = await request.get(`${WEB_URL}/api/dds`);
+    expect(apiRes.ok(), `GET /api/dds returned ${apiRes.status()}`).toBe(true);
+    let dds = (await apiRes.json()) as DdsResponse;
+
+    // The board's yesterday rolls over every 24 real minutes (sim day
+    // boundary) — a single retry covers the test straddling that boundary
+    // between the page load and the API fetch above.
+    if (dds.day !== uiDay) {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('dds-day')).toBeVisible({ timeout: 15_000 });
+      dayText = await page.getByTestId('dds-day').innerText();
+      uiDay = dayText.replace('Yesterday: ', '').trim();
+      apiRes = await request.get(`${WEB_URL}/api/dds`);
+      dds = (await apiRes.json()) as DdsResponse;
+    }
+    expect(dds.day, 'UI-displayed day and freshly-fetched API day did not converge after one retry').toBe(uiDay);
+
+    // Prove the route's yesterday resolution against an independent read of
+    // the sim clock, rather than assuming the route computed it correctly.
+    const clockRes = await request.get(`${WEB_URL}/api/sim-clock`);
+    const clock = (await clockRes.json()) as { simNow: string };
+    const simNow = new Date(clock.simNow);
+    const expectedYesterday = new Date(Date.UTC(simNow.getUTCFullYear(), simNow.getUTCMonth(), simNow.getUTCDate() - 1));
+    const expectedYesterdayStr = expectedYesterday.toISOString().slice(0, 10);
+    expect(dds.day).toBe(expectedYesterdayStr);
+
+    await expect(page.getByTestId('dds-safety-value')).toHaveText(String(dds.safety.daysSinceIncident));
+
+    const qualityPctText = dds.quality.qualityPct == null ? 'N/A' : `${Math.round(dds.quality.qualityPct * 100)}%`;
+    await expect(page.getByTestId('dds-quality-value')).toHaveText(qualityPctText);
+    await expect(page.getByTestId('dds-quality-sub')).toContainText(
+      dds.quality.totalRejects == null ? 'N/A' : String(dds.quality.totalRejects),
+    );
+
+    const oeePctText = dds.oee.oee == null ? 'N/A' : `${Math.round(dds.oee.oee * 100)}%`;
+    await expect(page.getByTestId('dds-oee-value')).toHaveText(oeePctText);
+
+    if (dds.topLoss) {
+      await expect(page.getByTestId('dds-top-loss')).toBeVisible();
+      await expect(page.getByTestId('dds-top-loss')).toContainText(dds.topLoss.reasonLabel);
+      await expect(page.getByTestId('dds-top-loss')).toContainText(dds.topLoss.lineName);
+      await expect(page.getByTestId('dds-top-loss')).toContainText(String(Math.round(dds.topLoss.lostTimeMin)));
+    } else {
+      await expect(page.getByTestId('dds-top-loss-empty')).toBeVisible();
+    }
+
+    const actionRows = page.getByTestId('dds-action-row');
+    await expect(actionRows).toHaveCount(dds.actions.length);
+    const actionCount = await actionRows.count();
+    for (let i = 0; i < actionCount; i++) {
+      await expect(actionRows.nth(i)).toContainText(dds.actions[i].owner);
+    }
+
+    if (dds.escalations.length > 0) {
+      const escalationRows = page.getByTestId('dds-escalation-row');
+      await expect(escalationRows).toHaveCount(dds.escalations.length);
+    } else {
+      await expect(page.getByTestId('dds-no-escalations')).toBeVisible();
+    }
+
+    // Delivery is an explicit two-branch assertion. The annotation is what
+    // makes a green run auditable — without it nobody can tell from the
+    // report which branch was exercised, and a green suite could be
+    // mistaken for coverage of the populated-Delivery path when it in fact
+    // only ever exercised the empty one (WINDOWS entry 11).
+    if (dds.delivery.difotPct == null) {
+      await expect(page.getByTestId('dds-delivery-value')).toHaveText('N/A');
+      const sub = await page.getByTestId('dds-delivery-sub').innerText();
+      expect(sub, 'delivery sub-line must not show a numeric late-order count when difotPct is null').not.toMatch(/\d/);
+      testInfo.annotations.push({ type: 'dds-delivery-branch', description: 'empty (difotPct null)' });
+    } else {
+      const expectedPct = `${Math.round(dds.delivery.difotPct * 100)}%`;
+      await expect(page.getByTestId('dds-delivery-value')).toHaveText(expectedPct);
+      await expect(page.getByTestId('dds-delivery-sub')).toContainText(String(dds.delivery.lateCount));
+
+      // Independent second read-path over the same underlying view.
+      const ordersRes = await request.get(`${WEB_URL}/api/orders?day=${dds.day}`);
+      const ordersJson = (await ordersRes.json()) as OrdersResponse;
+      expect(ordersJson.difot, `/api/orders?day=${dds.day} must have a populated difot to cross-check /api/dds`).not.toBeNull();
+      expect(Math.round((ordersJson.difot!.difotPct ?? 0) * 100)).toBe(Math.round(dds.delivery.difotPct * 100));
+
+      testInfo.annotations.push({ type: 'dds-delivery-branch', description: 'populated (difotPct non-null)' });
+    }
+
+    expect(pageErrors, `client-side errors: ${pageErrors.join('; ')}`).toEqual([]);
+  });
 });
+
+interface DdsResponse {
+  day: string;
+  safety: { daysSinceIncident: number; synthetic: boolean };
+  quality: { qualityPct: number | null; totalRejects: number | null };
+  delivery: { difotPct: number | null; onTimeCount: number | null; totalDue: number | null; lateCount: number | null };
+  oee: { oee: number | null; delta: number | null };
+  topLoss: { lineId: string; lineName: string; category: string; reasonCode: string; reasonLabel: string; lostTimeMin: number } | null;
+  actions: { rank: number; reasonCode: string; category: string; lineId: string; lineName: string; lostTimeSec: number; action: string; owner: string }[];
+  escalations: { lineId: string; lineName: string; reason: string; metric: string }[];
+}

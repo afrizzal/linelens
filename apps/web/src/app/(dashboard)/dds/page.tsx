@@ -90,36 +90,48 @@ export default function DdsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Daily Direction Setting</h1>
-        {data && <span className="text-sm text-foreground/50">Yesterday: {data.day}</span>}
+        {data && (
+          <span data-testid="dds-day" className="text-sm text-foreground/50">
+            Yesterday: {data.day}
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
           <div className="text-xs text-foreground/50">Safety</div>
-          <div className="mt-1 text-2xl font-bold">{safety ? safety.daysSinceIncident : "—"}</div>
+          <div data-testid="dds-safety-value" className="mt-1 text-2xl font-bold">
+            {safety ? safety.daysSinceIncident : "—"}
+          </div>
           <div className="mt-1 text-xs text-foreground/40">days since incident (synthetic data)</div>
         </Card>
         <Card>
           <div className="text-xs text-foreground/50">Quality</div>
-          <div className={`mt-1 text-2xl font-bold ${quality?.qualityPct == null ? "text-foreground/40" : ""}`}>
+          <div
+            data-testid="dds-quality-value"
+            className={`mt-1 text-2xl font-bold ${quality?.qualityPct == null ? "text-foreground/40" : ""}`}
+          >
             {quality ? formatPct(quality.qualityPct) : "—"}
           </div>
-          <div className="mt-1 text-xs text-foreground/40">
+          <div data-testid="dds-quality-sub" className="mt-1 text-xs text-foreground/40">
             {quality ? `${formatCount(quality.totalRejects)} rejects` : "—"}
           </div>
         </Card>
         <Card>
           <div className="text-xs text-foreground/50">Delivery</div>
-          <div className={`mt-1 text-2xl font-bold ${delivery?.difotPct == null ? "text-foreground/40" : ""}`}>
+          <div
+            data-testid="dds-delivery-value"
+            className={`mt-1 text-2xl font-bold ${delivery?.difotPct == null ? "text-foreground/40" : ""}`}
+          >
             {delivery ? formatPct(delivery.difotPct) : "—"}
           </div>
-          <div className="mt-1 text-xs text-foreground/40">
+          <div data-testid="dds-delivery-sub" className="mt-1 text-xs text-foreground/40">
             {delivery ? `${formatCount(delivery.lateCount)} late orders` : "—"}
           </div>
         </Card>
         <Card>
           <div className="text-xs text-foreground/50">OEE</div>
-          <div className={`mt-1 text-2xl font-bold ${oee?.oee == null ? "text-foreground/40" : ""}`}>
+          <div data-testid="dds-oee-value" className={`mt-1 text-2xl font-bold ${oee?.oee == null ? "text-foreground/40" : ""}`}>
             {oee ? formatPct(oee.oee) : "—"}
           </div>
           <div className="mt-1 text-xs text-foreground/40">
@@ -139,6 +151,7 @@ export default function DdsPage() {
         <h2 className="mb-3 text-sm font-medium text-foreground/70">Top loss yesterday</h2>
         {topLoss ? (
           <Link
+            data-testid="dds-top-loss"
             href={`/losses?lineId=${encodeURIComponent(topLoss.lineId)}&day=${encodeURIComponent(data!.day)}`}
             className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2.5 text-sm transition-colors hover:border-white/25 hover:bg-white/[0.05]"
           >
@@ -150,17 +163,20 @@ export default function DdsPage() {
             <span className="ml-auto text-sm font-semibold">{Math.round(topLoss.lostTimeMin)} min</span>
           </Link>
         ) : (
-          <p className="py-8 text-center text-sm text-foreground/50">No losses recorded yesterday — N/A.</p>
+          <p data-testid="dds-top-loss-empty" className="py-8 text-center text-sm text-foreground/50">
+            No losses recorded yesterday — N/A.
+          </p>
         )}
       </Card>
 
       <Card>
         <h2 className="mb-3 text-sm font-medium text-foreground/70">Today&apos;s top 3 actions</h2>
         {actions.length > 0 ? (
-          <ol className="space-y-2">
+          <ol data-testid="dds-actions" className="space-y-2">
             {actions.map((a) => (
               <li
                 key={`${a.reasonCode}-${a.lineId}`}
+                data-testid="dds-action-row"
                 className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2.5 text-sm"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
@@ -184,10 +200,11 @@ export default function DdsPage() {
       <Card>
         <h2 className="mb-3 text-sm font-medium text-foreground/70">Escalations</h2>
         {escalations.length > 0 ? (
-          <div className="space-y-2">
+          <div data-testid="dds-escalations" className="space-y-2">
             {escalations.map((e, i) => (
               <div
                 key={`${e.lineId}-${i}`}
+                data-testid="dds-escalation-row"
                 className="flex flex-wrap items-center gap-3 rounded-md border border-state-down/30 bg-state-down/5 px-3 py-2.5 text-sm"
               >
                 <span className="font-mono text-xs text-foreground/50">{e.lineName}</span>
@@ -197,7 +214,10 @@ export default function DdsPage() {
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-md border border-state-execute/30 bg-state-execute/5 px-3 py-2.5 text-sm text-state-execute">
+          <div
+            data-testid="dds-no-escalations"
+            className="flex items-center gap-2 rounded-md border border-state-execute/30 bg-state-execute/5 px-3 py-2.5 text-sm text-state-execute"
+          >
             No escalations.
           </div>
         )}
