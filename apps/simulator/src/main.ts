@@ -44,7 +44,16 @@ const main = async (): Promise<void> => {
   const mqttUrl = process.env.MQTT_URL ?? 'mqtt://localhost:1883';
   const publisher = await createPublisher({ url: mqttUrl, logger });
 
-  const plant = createPlant({ config, onEvent: publisher.publish, startSimMs: SIM_START });
+  // WINDOWS 14: publishing is muteable so the plant can be fast-forwarded
+  // through a span the database ALREADY holds without republishing it.
+  let publishMuted = false;
+  const plant = createPlant({
+    config,
+    onEvent: (event) => {
+      if (!publishMuted) publisher.publish(event);
+    },
+    startSimMs: SIM_START,
+  });
 
   // The clock starts PAUSED at go-live. simNow() is therefore pinned to
   // GO_LIVE for as long as we wait on the ingestor handshake below
@@ -67,6 +76,7 @@ const main = async (): Promise<void> => {
 
   let ingestorReady = false;
   let warmStartComplete = false;
+  let storedMaxSimMs: number | null = null;
   let releaseGate: (() => void) | null = null;
   const ingestorReadyGate = new Promise<void>((resolve) => {
     releaseGate = resolve;
@@ -82,8 +92,9 @@ const main = async (): Promise<void> => {
       setClock,
       simNow,
       nowRealMs: () => Date.now(),
-      onIngestorReady: () => {
+      onIngestorReady: (maxSimTimeMs) => {
         ingestorReady = true;
+        if (maxSimTimeMs !== null) storedMaxSimMs = maxSimTimeMs;
         releaseGate?.();
       },
       getReadiness: () => ({ ingestorReady, warmStartComplete }),
@@ -118,14 +129,40 @@ const main = async (): Promise<void> => {
     );
   }
 
-  logger.info({ from: new Date(SIM_START).toISOString(), to: new Date(GO_LIVE).toISOString() }, 'warm-starting plant through prior sim-day');
-  plant.advanceAll(GO_LIVE);
-  warmStartComplete = true;
-  logger.info('warm-start complete; entering live loop at go-live');
+  // WINDOWS 14: on a restart against a surviving Postgres volume, the database
+  // already holds events well past go-live. Warm-starting anyway left the
+  // clock BEHIND its own data — every machine read BREAK with a future
+  // `since`, and inject-breakdown 404'd with "no injectable machine found"
+  // because nothing was in EXECUTE, killing the demo. Resume from the newest
+  // stored event instead.
+  //
+  // The catch-up is deterministic: same seed, same start, same span as the
+  // process that produced that history, so it reconstructs the same plant
+  // state. Breakdowns INJECTED during the prior run are not replayed — a
+  // documented, accepted divergence.
+  const resumeTo = storedMaxSimMs !== null && storedMaxSimMs > GO_LIVE ? storedMaxSimMs : null;
 
-  // Only now does sim time start running — measured from the end of the
-  // burst, so the backlog and the live loop stay contiguous.
-  clock = { epochSimMs: GO_LIVE, startedAtRealMs: Date.now(), speed: config.speed, pausedAtRealMs: null };
+  if (resumeTo !== null) {
+    logger.info(
+      { goLive: new Date(GO_LIVE).toISOString(), resumeTo: new Date(resumeTo).toISOString() },
+      'stored history runs past go-live; resuming the clock from it instead of warm-starting',
+    );
+    publishMuted = true;
+    plant.advanceAll(resumeTo);
+    publishMuted = false;
+    warmStartComplete = true;
+    logger.info('resume complete; entering live loop at stored history head');
+    clock = { epochSimMs: resumeTo, startedAtRealMs: Date.now(), speed: config.speed, pausedAtRealMs: null };
+  } else {
+    logger.info({ from: new Date(SIM_START).toISOString(), to: new Date(GO_LIVE).toISOString() }, 'warm-starting plant through prior sim-day');
+    plant.advanceAll(GO_LIVE);
+    warmStartComplete = true;
+    logger.info('warm-start complete; entering live loop at go-live');
+
+    // Only now does sim time start running — measured from the end of the
+    // burst, so the backlog and the live loop stay contiguous.
+    clock = { epochSimMs: GO_LIVE, startedAtRealMs: Date.now(), speed: config.speed, pausedAtRealMs: null };
+  }
 
   const interval = setInterval(() => {
     try {

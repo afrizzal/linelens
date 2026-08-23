@@ -153,12 +153,29 @@ const syncOrderBook = async (db: Db, clock: SimulatorClockState | null, seed: nu
  * must keep ingesting even if the control endpoint is unreachable. Called
  * again on every MQTT reconnect; the endpoint is idempotent.
  */
-const signalIngestorReady = async (): Promise<void> => {
+const signalIngestorReady = async (db: Db): Promise<void> => {
+  // WINDOWS 14: hand the simulator the newest event we already hold so it can
+  // resume the clock from stored history instead of warm-starting over it. A
+  // failure here is not worth blocking the signal — send null and let the
+  // simulator take its normal warm-start path.
+  let maxSimTimeMs: number | null = null;
+  try {
+    const agg = await db.machineEvent.aggregate({ _max: { simTime: true } });
+    const max = agg._max.simTime;
+    if (max) maxSimTimeMs = max.getTime();
+  } catch (err) {
+    logger.warn({ err }, 'could not read stored max simTime; signalling without a history hint');
+  }
+
   for (let attempt = 1; attempt <= INGESTOR_READY_ATTEMPTS; attempt++) {
     try {
-      const res = await fetch(`${SIMULATOR_URL}/control/ingestor-ready`, { method: 'POST' });
+      const res = await fetch(`${SIMULATOR_URL}/control/ingestor-ready`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ maxSimTimeMs }),
+      });
       if (res.ok) {
-        logger.info({ attempt }, 'ingestor-ready signalled');
+        logger.info({ attempt, maxSimTimeMs }, 'ingestor-ready signalled');
         return;
       }
       logger.warn({ attempt, status: res.status }, 'ingestor-ready rejected');
@@ -191,7 +208,7 @@ const main = async (): Promise<void> => {
     db,
     logger,
     mqttUrl: MQTT_URL,
-    onSubscribed: () => void signalIngestorReady(),
+    onSubscribed: () => void signalIngestorReady(db),
   });
 
   // The OEE engine: machine_event -> state_interval -> loss_event

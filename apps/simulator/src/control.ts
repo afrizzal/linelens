@@ -27,8 +27,12 @@ export interface ControlDeps {
    * telemetry topic. main.ts uses this to release the warm-start gate — see
    * the WINDOWS-15 note on `/control/ingestor-ready` below. Idempotent: the
    * worker re-signals on every MQTT reconnect.
+   *
+   * `maxSimTimeMs` is the newest `machine_event.simTime` already in the
+   * database (null on an empty one) — WINDOWS 14, used to resume the clock
+   * from stored history instead of blindly warm-starting over it.
    */
-  onIngestorReady?: () => void;
+  onIngestorReady?: (maxSimTimeMs: number | null) => void;
   /** Warm-start progress, surfaced on /healthz so a cold start is debuggable. */
   getReadiness?: () => { ingestorReady: boolean; warmStartComplete: boolean };
   logger: Logger;
@@ -139,10 +143,25 @@ export const createControlServer = (deps: ControlDeps, port: number): http.Serve
      * warm-start.
      */
     if (req.method === 'POST' && url === '/control/ingestor-ready') {
-      const readiness = getReadiness?.();
-      onIngestorReady?.();
-      logger.info({ warmStartComplete: readiness?.warmStartComplete ?? false }, 'ingestor-ready received');
-      sendJson(res, 200, { ok: true, warmStartComplete: readiness?.warmStartComplete ?? false });
+      readJsonBody(req)
+        .then((body) => {
+          const raw = body.maxSimTimeMs;
+          const maxSimTimeMs = typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+          const readiness = getReadiness?.();
+          onIngestorReady?.(maxSimTimeMs);
+          logger.info(
+            { warmStartComplete: readiness?.warmStartComplete ?? false, maxSimTimeMs },
+            'ingestor-ready received',
+          );
+          sendJson(res, 200, { ok: true, warmStartComplete: readiness?.warmStartComplete ?? false });
+        })
+        .catch((err) => {
+          // A malformed body must not strand the warm-start gate — release it
+          // with no history hint and let the normal warm-start path run.
+          logger.warn({ err }, 'ingestor-ready body unparseable; releasing gate without a history hint');
+          onIngestorReady?.(null);
+          sendJson(res, 200, { ok: true, warmStartComplete: getReadiness?.().warmStartComplete ?? false });
+        });
       return;
     }
 
