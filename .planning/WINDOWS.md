@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 11
+open_count: 9
 waived_count: 0
-fixed_count: 4
-total_count: 15
-last_updated: 2026-08-23T14:35:01.200Z
+fixed_count: 7
+total_count: 16
+last_updated: 2026-08-23T15:27:08.523Z
 ---
 
 # Broken Windows Ledger
@@ -17,8 +17,8 @@ last_updated: 2026-08-23T14:35:01.200Z
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 03 | unrun-verify | apps/web/src/app/api/andon/route.ts |  | Task 2 in-docker <verify> (spot-check andon vs mosquitto_sub) could not run: /api/andon, /api/oee, /api/timeline, /api/sim-clock all return HTTP 500 in docker's next dev — Turbopack cannot resolve packages/db/generated/prisma/client.ts through the @linelens/db workspace package chain. See 03-01-SUMMARY.md Known Issues. | fixed |  | 2026-08-22T09:31:10.865Z | 2026-08-22T10:25:07.831Z |
 | 2 | 03 | lint-warning | apps/worker/src/derive/prisma-store.ts |  | Pre-existing tsc implicit-any errors (15 across prisma-store.ts/runner.ts/golden.test.ts) unrelated to 03-02; confirmed via git stash. Runtime/tests unaffected (93/93 pass). | open |  | 2026-08-22T11:02:09.075Z |  |
-| 3 | 03 | unmet-truth | apps/web/src/app/(dashboard)/oee/page.tsx | 83 | OEE page default lands on an empty shift ~1/3 of the time. Sim runs 60x; shifts are S1 07:00-15:00 and S2 15:00-23:00, so sim 23:00-07:00 (8 of every 24 real minutes) has no active shift. /api/andon then reports no active shift and the page falls back to 'sim today + S1', which has zero production, so the whole page renders N/A. The N/A itself is CORRECT (project rule: N/A not 0 when no shift) - this is demo credibility, not a correctness defect. Two fixes needed: (1) default to the most recent shift WITH data rather than sim-today+S1; (2) shiftDate is seeded once via setShiftDate(prev => prev \|\| ...) and never follows a sim-day rollover, so a long-open dashboard silently shows a stale date. Check timeline/page.tsx for the same default pattern. Deferred at the 03-03 human checkpoint by explicit user decision. | open |  | 2026-08-22T13:30:10.932Z |  |
-| 4 | 03 | unmet-truth | apps/web/src/app/(dashboard)/timeline/page.tsx |  | Second, un-deferred instance of the shift-date rollover seeding bug (WINDOWS entry 3 covers only oee/page.tsx:83). Same pattern: shiftDate seeded once on mount and never follows a sim-day rollover. Code review 03-REVIEW.md WR-01. Deferred with entry 3 - fix both together. | open |  | 2026-08-22T14:15:59.905Z |  |
+| 3 | 03 | unmet-truth | apps/web/src/app/(dashboard)/oee/page.tsx | 83 | OEE page default lands on an empty shift ~1/3 of the time. Sim runs 60x; shifts are S1 07:00-15:00 and S2 15:00-23:00, so sim 23:00-07:00 (8 of every 24 real minutes) has no active shift. /api/andon then reports no active shift and the page falls back to 'sim today + S1', which has zero production, so the whole page renders N/A. The N/A itself is CORRECT (project rule: N/A not 0 when no shift) - this is demo credibility, not a correctness defect. Two fixes needed: (1) default to the most recent shift WITH data rather than sim-today+S1; (2) shiftDate is seeded once via setShiftDate(prev => prev \|\| ...) and never follows a sim-day rollover, so a long-open dashboard silently shows a stale date. Check timeline/page.tsx for the same default pattern. Deferred at the 03-03 human checkpoint by explicit user decision. | fixed |  | 2026-08-22T13:30:10.932Z | 2026-08-23T15:27:05.504Z |
+| 4 | 03 | unmet-truth | apps/web/src/app/(dashboard)/timeline/page.tsx |  | Second, un-deferred instance of the shift-date rollover seeding bug (WINDOWS entry 3 covers only oee/page.tsx:83). Same pattern: shiftDate seeded once on mount and never follows a sim-day rollover. Code review 03-REVIEW.md WR-01. Deferred with entry 3 - fix both together. | fixed |  | 2026-08-22T14:15:59.905Z | 2026-08-23T15:27:06.763Z |
 | 5 | 03 | unmet-truth | apps/web/src/app/api/control/inject/route.ts |  | POST /api/control/inject rate limiting is client-side only, no server-side enforcement. Code review 03-REVIEW.md WR-03. Demo appliance with allow_anonymous MQTT so low risk, but the endpoint is reachable by anyone who can load the page. Deferred by user decision at the phase-03 code-review gate. | open |  | 2026-08-22T14:16:02.301Z |  |
 | 6 | 03 | todo | apps/web/src/app/api/stream/route.ts |  | console.* logging used in the SSE route and lib/listener.ts instead of the project-mandated pino structured logger (STACK.md); pino is not installed in apps/web. Code review 03-REVIEW.md WR-04. Deferred by user decision at the phase-03 code-review gate. | open |  | 2026-08-22T14:16:04.239Z |  |
 | 7 | 03 | todo | apps/web/src/app/(dashboard)/oee/page.tsx |  | Duplicated line/shift selector boilerplate and a duplicated formatPct helper across oee/page.tsx and timeline/page.tsx. Code review 03-REVIEW.md WR-05/WR-06 plus Info findings IN-01 (unused lineId option on useLive) and IN-02 (no zod validation at the client fetch boundary). Deferred by user decision at the phase-03 code-review gate. | open |  | 2026-08-22T14:16:05.797Z |  |
@@ -28,8 +28,9 @@ last_updated: 2026-08-23T14:35:01.200Z
 | 11 | 04 | unrun-verify | apps/web/src/app/api/dds/route.ts |  | Live docker check of /api/dds's non-null Delivery path (DIFOT%/lateCount populated, and a line DIFOT<80% escalation firing) was not observed within the executor's time budget -- the pinned warm-start sim-day (2026-01-05) has zero orders due yet (due dates start 2026-01-07+), so the live spot-check only exercised the N/A path (which caught and fixed a real 0-vs-null bug, see 9d516fe). Indirect confidence: /api/orders?day=2026-01-08 confirmed real DIFOT 72.7% (11 due, 8 on-time) data exists in the running stack for when sim time reaches that day, and deriveEscalations/generateDdsActions have 18 unit tests covering the non-null paths including the exact DIFOT<80% threshold. | fixed |  | 2026-08-23T06:20:34.691Z | 2026-08-23T08:33:14.015Z |
 | 12 | quick-260823-jre | todo | tests/smoke/compose-stack.spec.ts |  | The Phase-1 compose smoke suite is not re-runnable against a long-lived stack: 'inject-breakdown is accepted and takes a real machine down' POSTs to /control/inject-breakdown on L1, but apps/simulator/src/control.ts:77 returns 404 'no injectable machine found' when that line's machine is already down from an earlier run. Reproduced 2026-08-23: two prior injects left L1-M1 down until sim 2026-01-09 while the sim clock was ~2026-01-06, so a re-run failed 2/11 (this test plus the Sparkplug telemetry test). Fresh-stack runs pass. Fix options: target a line with an available machine, release the injected breakdown in an afterEach, or assert 404-with-that-message as an acceptable already-down outcome. | open |  | 2026-08-23T08:48:43.956Z |  |
 | 13 | 04 | unrun-verify | tests/smoke/phase4-screens.spec.ts |  | CR-01's regression guard has never executed. The code-review fix 4650a12 (timeline shift-picker sentinel) added a shift-convergence assertion to the 'drill-down money shot' smoke test, but that test test.skip()s whenever no LATE/AT_RISK order exists, and it skipped on every verification run after the fix (2026-08-23). The fix itself is verified by typecheck, next build (/timeline still prerenders static), apps/web vitest 7 files/34 tests green, and code reading -- but the assertion that would catch a reintroduction of CR-01 is unproven. It HAS run before (the quick-task executor's earlier run hit a genuine LATE order), so this resolves itself once sim time produces one; forcing it via breakdown injection is explicitly forbidden (v_order_status's COALESCE(NULLIF(recent.goodPerSec,0), fallback.goodPerSec, 0) makes a fully-downed product fall back to the ideal rate and read healthy). Re-run pnpm test:smoke on a stack whose sim clock has produced a LATE order and confirm test 9 passes rather than skips. | fixed |  | 2026-08-23T09:41:22.149Z | 2026-08-23T14:16:12.217Z |
-| 14 | 04 | todo | docker-compose.yml |  | Restarting the compose stack desynchronizes the sim clock from accumulated event history. The simulator warm-starts from WARM_START_DAY (2026-01-05) on every container start, but the Postgres volume keeps events from prior runs that reached later sim times. Observed 2026-08-23 after several docker compose stop/start cycles: machine_event max simTime = 2026-01-11 12:17 while sim_now() = 2026-01-10 16:34 -- roughly 20 sim-hours of data sitting in the future relative to the clock. Symptoms: /api/andon reports every machine BREAK with a future 'since' timestamp, and POST /control/inject-breakdown returns 404 'no injectable machine found' because no machine is in EXECUTE, which blocks the inject-breakdown demo entirely. Does NOT affect a stranger running docker compose up once on a clean volume (the Phase-05 target scenario), but WILL affect Phase 05's GIF recording if the stack is restarted between takes. Workaround: docker compose down -v for a clean volume before a recording run. Proper fix would be for the worker/simulator to either resume the clock from max(machine_event.simTime) or refuse to warm-start over existing later history. | open |  | 2026-08-23T11:25:36.510Z |  |
+| 14 | 04 | todo | docker-compose.yml |  | Restarting the compose stack desynchronizes the sim clock from accumulated event history. The simulator warm-starts from WARM_START_DAY (2026-01-05) on every container start, but the Postgres volume keeps events from prior runs that reached later sim times. Observed 2026-08-23 after several docker compose stop/start cycles: machine_event max simTime = 2026-01-11 12:17 while sim_now() = 2026-01-10 16:34 -- roughly 20 sim-hours of data sitting in the future relative to the clock. Symptoms: /api/andon reports every machine BREAK with a future 'since' timestamp, and POST /control/inject-breakdown returns 404 'no injectable machine found' because no machine is in EXECUTE, which blocks the inject-breakdown demo entirely. Does NOT affect a stranger running docker compose up once on a clean volume (the Phase-05 target scenario), but WILL affect Phase 05's GIF recording if the stack is restarted between takes. Workaround: docker compose down -v for a clean volume before a recording run. Proper fix would be for the worker/simulator to either resume the clock from max(machine_event.simTime) or refuse to warm-start over existing later history. | fixed |  | 2026-08-23T11:25:36.510Z | 2026-08-23T15:27:08.523Z |
 | 15 | 04 | unmet-truth | docker-compose.yml |  | Cold start on a clean volume loses the ENTIRE warm-start sim-day. compose guarantees worker starts AFTER simulator (worker.depends_on.simulator: service_healthy, docker-compose.yml:70-73), but the simulator publishes its whole warm-start backlog (SIM_START 2026-01-05T06:55 -> GO_LIVE 2026-01-06T06:55) in a ~1.5s burst at boot, before its own healthcheck start_period even elapses. Measured 2026-08-23 on a fresh 'docker compose down -v && up': simulator burst 14:03:21.015-14:03:22.530; worker process started 14:03:25.487; worker 'mqtt subscribed' 14:03:38.748 with sessionPresent:false -- 16.2s after the backlog was gone. clean:false + QoS1 only replays for a session that already exists, so nothing is retained. Result on a clean stack: earliest machine_event.simTime = 2026-01-06 07:00, /api/losses?day=2026-01-05 returns 0 rows on EVERY line (breaks smoke test 10's fixture invariant in tests/smoke/phase4-screens.spec.ts:351), and GET /api/dds resolves yesterday=2026-01-05 with quality/delivery/oee/topLoss all null and 0 actions -- the DDS screen's entire premise. Exact mirror of entry 14: a RESTART puts data ahead of the clock, a clean COLD START drops the warm-start day entirely. Hits the Phase-05 target scenario (a stranger runs docker compose up once on a clean volume) head-on. Fix direction: make the simulator withhold its warm-start burst until the worker is subscribed (readiness handshake or inverted depends_on), not merely until mqtt is healthy. | fixed |  | 2026-08-23T14:15:55.271Z | 2026-08-23T14:35:01.200Z |
+| 16 | quick-260823-uib | todo | tests/smoke/compose-stack.spec.ts |  | Second, distinct cause of the WINDOWS-12 symptom: the compose smoke suite fails whenever it runs during the no-shift window, independent of any prior inject. Shifts are S1 07:00-15:00 and S2 15:00-23:00, so sim 23:00-07:00 -- a THIRD of every sim-day, i.e. 8 of every 24 real minutes at SIM_SPEED=60 -- has no production at all and every machine sits in BREAK. 'inject-breakdown is accepted and takes a real machine down' then 404s with 'no injectable machine found' (nothing is in EXECUTE), and 'broker streams contract-valid telemetry on the Sparkplug-B-style topic' also fails because telemetry is sparse. Measured 2026-08-23: full suite at sim ~05:00 => 2 failed / 11 passed / 1 skipped; the identical suite re-run at sim 07:22 with S1 active => compose-stack 5/5 green, no code change in between. WINDOWS 12 blames an already-down machine from a previous inject; this is the same two tests failing for a completely different reason, and it is NOT re-run-order dependent -- a first-ever run on a fresh clone hits it if the sim clock happens to be in the gap. Directly threatens Phase 05: the README will tell a stranger to run 'pnpm smoke', and it will fail one time in three with no hint that waiting 8 minutes fixes it. Fix options: have the two tests skip loudly (with an explicit reason, the WINDOWS-13 pattern) when /api/andon reports no active shift, or have them wait for the next shift, or assert the 404-with-that-message as an acceptable no-shift outcome. | open |  | 2026-08-23T15:24:22.961Z |  |
 
 ````json
 [
@@ -64,10 +65,10 @@ last_updated: 2026-08-23T14:35:01.200Z
     "file": "apps/web/src/app/(dashboard)/oee/page.tsx",
     "line": 83,
     "description": "OEE page default lands on an empty shift ~1/3 of the time. Sim runs 60x; shifts are S1 07:00-15:00 and S2 15:00-23:00, so sim 23:00-07:00 (8 of every 24 real minutes) has no active shift. /api/andon then reports no active shift and the page falls back to 'sim today + S1', which has zero production, so the whole page renders N/A. The N/A itself is CORRECT (project rule: N/A not 0 when no shift) - this is demo credibility, not a correctness defect. Two fixes needed: (1) default to the most recent shift WITH data rather than sim-today+S1; (2) shiftDate is seeded once via setShiftDate(prev => prev || ...) and never follows a sim-day rollover, so a long-open dashboard silently shows a stale date. Check timeline/page.tsx for the same default pattern. Deferred at the 03-03 human checkpoint by explicit user decision.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-22T13:30:10.932Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-23T15:27:05.504Z"
   },
   {
     "id": 4,
@@ -76,10 +77,10 @@ last_updated: 2026-08-23T14:35:01.200Z
     "file": "apps/web/src/app/(dashboard)/timeline/page.tsx",
     "line": null,
     "description": "Second, un-deferred instance of the shift-date rollover seeding bug (WINDOWS entry 3 covers only oee/page.tsx:83). Same pattern: shiftDate seeded once on mount and never follows a sim-day rollover. Code review 03-REVIEW.md WR-01. Deferred with entry 3 - fix both together.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-22T14:15:59.905Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-23T15:27:06.763Z"
   },
   {
     "id": 5,
@@ -196,10 +197,10 @@ last_updated: 2026-08-23T14:35:01.200Z
     "file": "docker-compose.yml",
     "line": null,
     "description": "Restarting the compose stack desynchronizes the sim clock from accumulated event history. The simulator warm-starts from WARM_START_DAY (2026-01-05) on every container start, but the Postgres volume keeps events from prior runs that reached later sim times. Observed 2026-08-23 after several docker compose stop/start cycles: machine_event max simTime = 2026-01-11 12:17 while sim_now() = 2026-01-10 16:34 -- roughly 20 sim-hours of data sitting in the future relative to the clock. Symptoms: /api/andon reports every machine BREAK with a future 'since' timestamp, and POST /control/inject-breakdown returns 404 'no injectable machine found' because no machine is in EXECUTE, which blocks the inject-breakdown demo entirely. Does NOT affect a stranger running docker compose up once on a clean volume (the Phase-05 target scenario), but WILL affect Phase 05's GIF recording if the stack is restarted between takes. Workaround: docker compose down -v for a clean volume before a recording run. Proper fix would be for the worker/simulator to either resume the clock from max(machine_event.simTime) or refuse to warm-start over existing later history.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-23T11:25:36.510Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-23T15:27:08.523Z"
   },
   {
     "id": 15,
@@ -212,6 +213,18 @@ last_updated: 2026-08-23T14:35:01.200Z
     "reason": "",
     "recorded_at": "2026-08-23T14:15:55.271Z",
     "resolved_at": "2026-08-23T14:35:01.200Z"
+  },
+  {
+    "id": 16,
+    "kind": "todo",
+    "phase": "quick-260823-uib",
+    "file": "tests/smoke/compose-stack.spec.ts",
+    "line": null,
+    "description": "Second, distinct cause of the WINDOWS-12 symptom: the compose smoke suite fails whenever it runs during the no-shift window, independent of any prior inject. Shifts are S1 07:00-15:00 and S2 15:00-23:00, so sim 23:00-07:00 -- a THIRD of every sim-day, i.e. 8 of every 24 real minutes at SIM_SPEED=60 -- has no production at all and every machine sits in BREAK. 'inject-breakdown is accepted and takes a real machine down' then 404s with 'no injectable machine found' (nothing is in EXECUTE), and 'broker streams contract-valid telemetry on the Sparkplug-B-style topic' also fails because telemetry is sparse. Measured 2026-08-23: full suite at sim ~05:00 => 2 failed / 11 passed / 1 skipped; the identical suite re-run at sim 07:22 with S1 active => compose-stack 5/5 green, no code change in between. WINDOWS 12 blames an already-down machine from a previous inject; this is the same two tests failing for a completely different reason, and it is NOT re-run-order dependent -- a first-ever run on a fresh clone hits it if the sim clock happens to be in the gap. Directly threatens Phase 05: the README will tell a stranger to run 'pnpm smoke', and it will fail one time in three with no hint that waiting 8 minutes fixes it. Fix options: have the two tests skip loudly (with an explicit reason, the WINDOWS-13 pattern) when /api/andon reports no active shift, or have them wait for the next shift, or assert the 404-with-that-message as an acceptable no-shift outcome.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-23T15:24:22.961Z",
+    "resolved_at": null
   }
 ]
 ````

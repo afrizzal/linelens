@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: difot-pareto-dds
 status: verified
-stopped_at: Phase 04 verified -- UAT item 1 passed live (WINDOWS 13 closed); cold-start warm-start data loss found and fixed (WINDOWS 15, quick task 260823-tkx)
-last_updated: "2026-08-23T14:42:00Z"
+stopped_at: Phase 04 complete; Phase-5 demo blockers cleared (WINDOWS 3, 4, 14 fixed). Ready for /gsd-plan-phase 05
+last_updated: "2026-08-23T15:35:00Z"
 last_activity: 2026-08-23
-last_activity_desc: Quick task 260823-tkx -- cold-start warm-start data-loss fix (WINDOWS 15)
+last_activity_desc: Quick task 260823-uib -- cleared Phase-5 demo blockers (WINDOWS 3, 4, 14)
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 ## Current Position
 
-Phase: 04 (difot-pareto-dds) — VERIFIED
+Phase: 04 (difot-pareto-dds) — COMPLETE
 Plan: 3 of 3
 Status: Phase verified — UAT complete (1/1 passed)
 Last activity: 2026-08-23 — Completed quick task 260823-tkx: cold-start warm-start data-loss fix (WINDOWS 15); Phase 04 UAT item 1 passed live, WINDOWS 13 closed
@@ -148,6 +148,7 @@ None yet.
 | 260823-jre | Add Playwright smoke tests for the Phase 4 screens (orders drill-down, losses Pareto, DDS) — 6 browser tests cross-checking every rendered number against the same endpoint's JSON in-run; also fixed `pnpm smoke` omitting the `worker` service and gave the Pareto canvas an `sr-only` data table (assertable + screen-reader readable). Closed WINDOWS entry 11 (populated DDS Delivery branch observed live); entries 8 and 9 stay open — their causal halves need a 24-real-minute sim-day, outside a 60s test budget | 2026-08-23 | aab9c3d | [260823-jre-add-playwright-smoke-tests-for-the-phase](./quick/260823-jre-add-playwright-smoke-tests-for-the-phase/) |
 | 260823-o4c | Fix T-04 (04-SECURITY.md): `/api/orders?day=` accepted calendar-invalid dates (regex-shape-only) and 500'd from two distinct failure classes — a JS Date silent rollover (`2026-02-30` -> Postgres `22008`) and an Invalid-Date `RangeError` thrown one line earlier (`2026-99-99`), which a DB-only try/catch would have missed. Added a pure `parseDayParam()` round-trip validator (`apps/web/src/lib/day-param.ts`, 15 new regression tests) and wired it into the route so `day`/`yesterday` derive from one validated Date. Live-verified against a rebuilt `web` container: 400/400/400/400/200 across the five probe dates | 2026-08-23 | 5bb7f12 | [260823-o4c-fix-t-04-calendar-validity-check-try-cat](./quick/260823-o4c-fix-t-04-calendar-validity-check-try-cat/) |
 | 260823-tkx | Fix cold-start warm-start data loss (WINDOWS 15): the simulator published its whole warm-start sim-day (2026-01-05T06:55Z->2026-01-06T06:55Z) as a ~1.5s burst at boot, ~16s before the worker subscribed with `sessionPresent:false` -- and `clean:false`+QoS1 only replays into a session that already exists, so a clean `docker compose up` lost the entire day (0 losses on every line for 2026-01-05, DDS yesterday board all-null). Structural, not flaky: `worker.depends_on.simulator: service_healthy` guarantees the worker starts last. Added a readiness handshake -- control server now listens BEFORE the burst (no deadlock, no depends_on inversion), clock held paused at go-live so sim time cannot drift while waiting, burst released by an idempotent `POST /control/ingestor-ready` the worker sends after its subscribe is broker-confirmed, with a loud non-fatal 120s timeout backstop. Verified live on a clean volume: earliest event now 2026-01-05 07:00 (64k events), losses on all four lines, DDS shows OEE 65.75%/quality 97.35%/top loss L4 BRK-MECH 43.7min/3 actions, smoke 10 passed with test 10 green, worker-only restart a clean no-op | 2026-08-23 | 0227886 | [260823-tkx-fix-cold-start-warm-start-data-loss-simu](./quick/260823-tkx-fix-cold-start-warm-start-data-loss-simu/) |
+| 260823-uib | Clear the two Phase-5 demo blockers. WINDOWS 3+4: shifts cover only 07:00-23:00, so for a third of every sim-day the OEE/Timeline pages fell back to sim-today+S1 (zero production) and rendered all N/A, and shiftDate never followed a sim-day rollover. /api/andon now carries per-line lastShiftDate/lastShiftId (appended fields, array shape unchanged) and both pages resolve active shift -> last shift with data -> old fallback, re-running on sim-day change, with a shiftPinned ref and deep-link precedence preserved (CR-01). WINDOWS 14: the simulator warm-started over surviving history, leaving the clock ~20 sim-hours BEHIND its own data and 404ing inject-breakdown; the worker now sends maxSimTimeMs with its readiness signal and the simulator resumes there with publishing muted instead. Verified live at sim 05:02 (page rendered zero N/A inside the previously-blank window), restart resumed to 2026-01-07T13:46:32 with inject working, cold start still ingests the warm-start day (65,494 events, determinism intact), smoke 14/14 with 0 skipped. New WINDOWS 16 opened: the compose smoke suite fails 2 tests whenever it runs during the no-shift window -- same tests as entry 12, different cause | 2026-08-23 | 46065a7 | [260823-uib-fix-demo-blockers-before-phase-5-oee-tim](./quick/260823-uib-fix-demo-blockers-before-phase-5-oee-tim/) |
 
 ## Session Continuity
 
