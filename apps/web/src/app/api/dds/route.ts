@@ -242,6 +242,14 @@ export async function GET(request: Request): Promise<Response> {
   const daysSinceIncident = SAFETY_SEED_START_DAYS + Math.max(0, diffDays);
 
   const difot = difotRows[0] ?? null;
+  // N/A NEVER 0: COUNT(*) always returns a number (0), even when zero orders
+  // were due yesterday -- unlike difotPct, which is genuinely absent (row-
+  // absence) from v_difot on a zero-orders-due day. Gate lateCount on the
+  // SAME "were any orders due" fact `difot` already encodes, so the tile
+  // never shows a false "0 late orders" next to an honest DIFOT N/A (found
+  // live against the docker stack: 2026-01-05 has zero orders due, since
+  // due dates start a few days after the warm-start day).
+  const lateCount = difot ? (lateOrderRows[0]?.lateCount ?? 0) : null;
 
   return Response.json({
     day: yesterdayStr,
@@ -252,7 +260,7 @@ export async function GET(request: Request): Promise<Response> {
       difotPct: difot?.difotPct ?? null,
       onTimeCount: difot?.onTimeCount ?? null,
       totalDue: difot?.totalDue ?? null,
-      lateCount: lateOrderRows[0]?.lateCount ?? null,
+      lateCount,
     },
     oee: { oee: yesterdayOee.oee, delta: oeeDelta },
     topLoss,
