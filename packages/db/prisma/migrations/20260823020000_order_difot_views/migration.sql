@@ -94,8 +94,12 @@ FROM enriched e;
 CREATE OR REPLACE VIEW v_difot AS
 SELECT
   os."dueDate"::date::text AS "dueDay",
-  COUNT(*) AS "totalDue",
-  COUNT(*) FILTER (WHERE os.status = 'ON_TIME') AS "onTimeCount",
+  -- ::int, not bigint (Postgres's default COUNT(*) type) -- node-pg/Prisma
+  -- decode bigint as JS BigInt, which Response.json()/JSON.stringify()
+  -- cannot serialize (found live, apps/web/src/app/api/orders/route.ts).
+  -- Order counts are always small; ::int is safe.
+  COUNT(*)::int AS "totalDue",
+  (COUNT(*) FILTER (WHERE os.status = 'ON_TIME'))::int AS "onTimeCount",
   (COUNT(*) FILTER (WHERE os.status = 'ON_TIME'))::double precision / NULLIF(COUNT(*), 0) AS "difotPct"
 FROM v_order_status os
 GROUP BY os."dueDate"::date;
@@ -120,8 +124,12 @@ order_line AS (
 SELECT
   ol."lineId",
   os."dueDate"::date::text AS "dueDay",
-  COUNT(*) AS "totalDue",
-  COUNT(*) FILTER (WHERE os.status = 'ON_TIME') AS "onTimeCount",
+  -- ::int, not bigint (Postgres's default COUNT(*) type) -- node-pg/Prisma
+  -- decode bigint as JS BigInt, which Response.json()/JSON.stringify()
+  -- cannot serialize (found live, apps/web/src/app/api/orders/route.ts).
+  -- Order counts are always small; ::int is safe.
+  COUNT(*)::int AS "totalDue",
+  (COUNT(*) FILTER (WHERE os.status = 'ON_TIME'))::int AS "onTimeCount",
   (COUNT(*) FILTER (WHERE os.status = 'ON_TIME'))::double precision / NULLIF(COUNT(*), 0) AS "difotPct"
 FROM v_order_status os
 JOIN order_line ol ON ol."orderId" = os."orderId"

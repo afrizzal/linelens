@@ -89,10 +89,23 @@ const runTick = async (deps: DerivationLoopDeps): Promise<void> => {
 
     const events = rows.map(toDerivedEvent);
     try {
-      await db.$transaction(async (tx) => {
-        const store = new PrismaStore(tx);
-        await processMachineBatch(store, logger, machineId, events);
-      });
+      // 04-01-PLAN.md Task 2 (Rule 1 - bug fix, found live against the
+      // warm-start backlog): Prisma's default interactive-transaction
+      // timeout is 5000ms. A full batchSize=500 backlog batch now does 2-3
+      // EXTRA round-trips per COUNTS event with goodDelta>0 (order lookup +
+      // allocation upsert(s) + possible shippedAt update, via
+      // allocateGoodProduction's inline hook) on top of the existing
+      // interval/loss work, which measurably exceeded 5s while draining the
+      // simulator's one-sim-day warm-start backlog and made every backlog
+      // batch fail-and-retry forever. 30s covers a full 500-event batch with
+      // room to spare without masking a genuinely stuck query.
+      await db.$transaction(
+        async (tx) => {
+          const store = new PrismaStore(tx);
+          await processMachineBatch(store, logger, machineId, events);
+        },
+        { timeout: 30_000 },
+      );
       for (const e of events) changedLineIds.add(e.lineId);
     } catch (err) {
       logger.error({ err, machineId, batchSize: events.length }, 'derive: batch transaction failed, will retry next tick');
