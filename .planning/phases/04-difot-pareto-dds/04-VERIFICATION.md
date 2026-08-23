@@ -1,22 +1,23 @@
 ---
 phase: 04-difot-pareto-dds
 verified: 2026-08-23T10:15:00Z
-status: human_needed
-score: 4/4 must-have truths present and wired; 1 of 4 has an unexecuted live-behavior assertion
-behavior_unverified: 1
+status: verified
+score: 4/4 must-have truths present, wired, and live-observed
+behavior_unverified: 0
 overrides_applied: 0
-behavior_unverified_items:
+behavior_unverified_items: []
+resolved_behavior_items:
   - truth: "A viewer drills down from a late/at-risk order to the specific contributing machine-level loss events with one click, and the highlighted Timeline band actually renders (success criterion 3, first half)"
-    test: "In the running docker stack, open /orders/[id] for a real LATE or AT_RISK order, click a ranked loss card, and confirm the Timeline page opens on the correct line/shift/date with the linked band pulsing amber."
-    expected: "The deep link lands on the correct shift (not silently overridden back to the sim's currently-active shift) and the target state-interval band visibly pulses."
-    why_human: "No LATE/AT_RISK order has existed in the live stack on any verification run since the CR-01 fix (4650a12) landed — the Playwright 'drill-down money shot' test (tests/smoke/phase4-screens.spec.ts) test.skip()s under that condition and has skipped on every run so far (WINDOWS.md entry 13). The fix is verified by code reading, typecheck, `next build`, and 34/34 apps/web unit tests, but the one test that would catch a regression of the exact bug it fixed has never actually executed its assertion."
+    resolved: 2026-08-23T14:40:00Z
+    how: "The sim clock produced a genuine AT_RISK order unaided (ORD-2026-01-05-CYC-C-0, due 2026-01-07) on a live clean-volume docker stack. The 'drill-down money shot' smoke test then RAN rather than test.skip()ing -- 1 passed (15.5s) -- executing the CR-01 regression guard expect(shiftSelect).toHaveValue(linkedShiftId) along with the ranked-loss ordering and deep-link param assertions. No breakdown injected, no clock fast-forward. WINDOWS entry 13 closed."
+    caveat: "AT_RISK is transient; a full-suite re-run minutes later skipped test 9 again because the order had reverted to OPEN. The assertion ran and passed once, on demand it is not reproducible until sim time passes a due date."
 ---
 
 # Phase 4: DIFOT, Losses Pareto & DDS Verification Report
 
 **Phase Goal:** Connect machine-level losses to broken customer promises and management-language decisions — the differentiator plus the analytical and synthesis screens that compose the loss ledger and live pipeline.
 **Verified:** 2026-08-23T10:15:00Z
-**Status:** human_needed
+**Status:** verified
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -92,3 +93,29 @@ This does not indicate cosmetic or hardcoded behavior — the causal mechanism u
 
 _Verified: 2026-08-23T10:15:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+
+---
+
+## Post-verification addendum (2026-08-23T14:40Z)
+
+The UAT run that closed this phase's one outstanding item also surfaced a
+**new, more serious defect** on the first genuinely clean stack anyone had run:
+smoke test 10 failed its fixture invariant (`line L1 must have losses on
+2026-01-05`).
+
+Root cause: the simulator published the entire warm-start sim-day as a ~1.5 s
+burst at boot, ~16 s before the ingestion worker subscribed
+(`sessionPresent: false`), and `clean:false` + QoS 1 only replays into a session
+that already exists. Structural rather than flaky —
+`worker.depends_on.simulator: service_healthy` guarantees the worker starts
+last. It killed the DDS "yesterday" board (all-null) and the warm-start day's
+Losses Pareto on exactly the Phase-05 target scenario.
+
+Tracked as WINDOWS entry 15 and fixed in quick task `260823-tkx` (commit
+`0227886`) via a worker→simulator readiness handshake. Re-verified live on a
+clean volume: earliest event `2026-01-05 07:00`, losses on all four lines, DDS
+yesterday populated, smoke suite 10 passed / 1 skipped with test 10 green.
+
+This did not change any Phase-04 must-have truth — the Phase-04 screens were
+correct; the data feeding them was missing.

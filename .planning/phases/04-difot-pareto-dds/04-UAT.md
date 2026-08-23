@@ -1,34 +1,49 @@
 ---
-status: testing
+status: complete
 phase: 04-difot-pareto-dds
 source: [04-VERIFICATION.md]
 started: 2026-08-23T10:20:00Z
-updated: 2026-08-23T10:20:00Z
+updated: 2026-08-23T14:40:00Z
 ---
 
 ## Current Test
 
-number: 1
-name: Live drill-down click-through lands on the correct shift with the band pulsing
-expected: |
-  Opening a real LATE or AT_RISK order's detail page and clicking its top ranked
-  loss card navigates to /timeline with the linked line, shift and shift-date.
-  The shift selector shows the LINKED loss's shift — not the sim's currently
-  active shift — and the target state-interval band visibly pulses amber.
-awaiting: user response
+none — all tests resolved
 
 ## Tests
 
 ### 1. Live drill-down click-through lands on the correct shift with the band pulsing
 expected: The deep link lands on the correct line/shift/date (not silently overridden back to the sim's currently-active shift) and the target state-interval band visibly pulses amber.
-result: [pending]
+result: pass
+
+Satisfied by the automated guard, exactly as option 2 of "How to run this test"
+prescribed — no manual fallback and no forced condition needed.
+
+Evidence (2026-08-23, live docker stack, clean volume):
+- The sim clock produced a genuine AT_RISK order on its own: `ORD-2026-01-05-CYC-C-0`,
+  due 2026-01-07, found via `GET /api/orders?day=2026-01-07`. No breakdown was
+  injected and the sim clock was not fast-forwarded.
+- `pnpm exec playwright test tests/smoke/phase4-screens.spec.ts -g "drill-down money shot"`
+  → **1 passed (15.5s)**. It did NOT `test.skip()`, so every assertion executed:
+  the ranked-loss ordering guard, the `lineId`/`highlightStart`/`highlightEnd`
+  deep-link params, the URL round-trip of `shiftId`, and — the CR-01 regression
+  guard itself — `expect(shiftSelect).toHaveValue(linkedShiftId)`, proving the
+  mount-time `/api/andon` effect no longer overrides an explicit `shiftId` deep
+  link back to the currently-active shift. Zero client-side page errors.
+- WINDOWS entry 13 closed on this evidence.
+
+Caveat recorded honestly: `AT_RISK` is a transient status (`projectedFinish >
+dueDate` against the current good-rate), and a full-suite re-run minutes later
+skipped test 9 again because the order had returned to `OPEN`. The assertion
+ran and passed; it is not reproducible on demand until sim time passes a due
+date.
 
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 

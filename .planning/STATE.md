@@ -4,11 +4,11 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: difot-pareto-dds
-status: verifying
-stopped_at: Completed 04-03-PLAN.md (Losses Pareto + DDS screen) -- Phase 04 fully executed, ready for verification
-last_updated: "2026-08-23T06:29:45.136Z"
+status: verified
+stopped_at: Phase 04 verified -- UAT item 1 passed live (WINDOWS 13 closed); cold-start warm-start data loss found and fixed (WINDOWS 15, quick task 260823-tkx)
+last_updated: "2026-08-23T14:42:00Z"
 last_activity: 2026-08-23
-last_activity_desc: Phase 04 execution started
+last_activity_desc: Quick task 260823-tkx -- cold-start warm-start data-loss fix (WINDOWS 15)
 progress:
   total_phases: 5
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 ## Current Position
 
-Phase: 04 (difot-pareto-dds) — EXECUTING
+Phase: 04 (difot-pareto-dds) — VERIFIED
 Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-08-23 — Completed quick task 260823-o4c: T-04 calendar-validity fix for /api/orders
+Status: Phase verified — UAT complete (1/1 passed)
+Last activity: 2026-08-23 — Completed quick task 260823-tkx: cold-start warm-start data-loss fix (WINDOWS 15); Phase 04 UAT item 1 passed live, WINDOWS 13 closed
 
 Progress: [█████████░] 86% (3/14 plans)
 
@@ -147,9 +147,10 @@ None yet.
 | 260822-vuv | Patch the three Phase-04 plans with Phase-02/03 contract deltas: the dead `loss_event.stateIntervalId` column that 04-02's drill-down deep-link designed around, the Phase-03 web conventions (Turbopack exports subpath, `lib/db.ts` singleton, ISO-'Z' sim-time binding), plus three planner-found defects — 04-01 missing `files_modified` entries, an unresolvable cross-app import in 04-03, and a `useSearchParams`/`<Suspense>` trap that passes `next dev` but fails `next build` | 2026-08-22 | 372b0f2 | [260822-vuv-patch-the-three-phase-04-plans-with-phas](./quick/260822-vuv-patch-the-three-phase-04-plans-with-phas/) |
 | 260823-jre | Add Playwright smoke tests for the Phase 4 screens (orders drill-down, losses Pareto, DDS) — 6 browser tests cross-checking every rendered number against the same endpoint's JSON in-run; also fixed `pnpm smoke` omitting the `worker` service and gave the Pareto canvas an `sr-only` data table (assertable + screen-reader readable). Closed WINDOWS entry 11 (populated DDS Delivery branch observed live); entries 8 and 9 stay open — their causal halves need a 24-real-minute sim-day, outside a 60s test budget | 2026-08-23 | aab9c3d | [260823-jre-add-playwright-smoke-tests-for-the-phase](./quick/260823-jre-add-playwright-smoke-tests-for-the-phase/) |
 | 260823-o4c | Fix T-04 (04-SECURITY.md): `/api/orders?day=` accepted calendar-invalid dates (regex-shape-only) and 500'd from two distinct failure classes — a JS Date silent rollover (`2026-02-30` -> Postgres `22008`) and an Invalid-Date `RangeError` thrown one line earlier (`2026-99-99`), which a DB-only try/catch would have missed. Added a pure `parseDayParam()` round-trip validator (`apps/web/src/lib/day-param.ts`, 15 new regression tests) and wired it into the route so `day`/`yesterday` derive from one validated Date. Live-verified against a rebuilt `web` container: 400/400/400/400/200 across the five probe dates | 2026-08-23 | 5bb7f12 | [260823-o4c-fix-t-04-calendar-validity-check-try-cat](./quick/260823-o4c-fix-t-04-calendar-validity-check-try-cat/) |
+| 260823-tkx | Fix cold-start warm-start data loss (WINDOWS 15): the simulator published its whole warm-start sim-day (2026-01-05T06:55Z->2026-01-06T06:55Z) as a ~1.5s burst at boot, ~16s before the worker subscribed with `sessionPresent:false` -- and `clean:false`+QoS1 only replays into a session that already exists, so a clean `docker compose up` lost the entire day (0 losses on every line for 2026-01-05, DDS yesterday board all-null). Structural, not flaky: `worker.depends_on.simulator: service_healthy` guarantees the worker starts last. Added a readiness handshake -- control server now listens BEFORE the burst (no deadlock, no depends_on inversion), clock held paused at go-live so sim time cannot drift while waiting, burst released by an idempotent `POST /control/ingestor-ready` the worker sends after its subscribe is broker-confirmed, with a loud non-fatal 120s timeout backstop. Verified live on a clean volume: earliest event now 2026-01-05 07:00 (64k events), losses on all four lines, DDS shows OEE 65.75%/quality 97.35%/top loss L4 BRK-MECH 43.7min/3 actions, smoke 10 passed with test 10 green, worker-only restart a clean no-op | 2026-08-23 | 0227886 | [260823-tkx-fix-cold-start-warm-start-data-loss-simu](./quick/260823-tkx-fix-cold-start-warm-start-data-loss-simu/) |
 
 ## Session Continuity
 
 Last session: 2026-08-23T10:41:03Z
-Stopped at: Completed quick task 260823-o4c (T-04 calendar-validity fix for /api/orders) -- Phase 04 fully executed, ready for verification
+Stopped at: Completed quick task 260823-tkx (cold-start warm-start data-loss fix, WINDOWS 15) -- Phase 04 UAT item 1 observed passing live, WINDOWS 13 closed; Phase 04 ready to close
 Resume file: None
