@@ -53,13 +53,19 @@ interface OpenIntervalRow {
   since: Date;
 }
 
+interface LastShiftRow {
+  lineId: string;
+  shiftDate: string;
+  shiftId: string;
+}
+
 interface GoodCountRow {
   lineId: string;
   goodCnt: number | null;
 }
 
 export async function GET(): Promise<Response> {
-  const [currentShiftRows, lines, openIntervals, machines] = await Promise.all([
+  const [currentShiftRows, lines, openIntervals, machines, lastShifts] = await Promise.all([
     db.$queryRaw<CurrentShiftRow[]>`
       SELECT "shiftDate", "shiftId", "shiftStart", "effectiveEnd", "pptSec"
       FROM v_shift_windows
@@ -79,6 +85,29 @@ export async function GET(): Promise<Response> {
     db.machine.findMany({
       select: { id: true, lineId: true, product: { select: { idealCycleTimeSec: true } } },
     }),
+    // WINDOWS 3+4: the shift window containing each line's most recent
+    // state_interval — the "last shift that actually has data". Shifts are
+    // S1 07:00-15:00 and S2 15:00-23:00, so sim 23:00-07:00 (8 of every 24
+    // sim-hours) has NO active shift; without this, the dashboard defaults to
+    // sim-today+S1, which has zero production, and renders N/A a third of the
+    // time. Per-line rather than one global value because the OEE page is
+    // per-line.
+    //
+    // JOIN FIRST, then take the latest window — do NOT "optimize" this into
+    // `max(startTime)` per line joined to its containing window. Measured
+    // 2026-08-23: at sim 23:39 the newest interval on every line is the BREAK
+    // that STARTS at 23:00, which sits outside every shift window, so the join
+    // drops it and the fallback comes back null in exactly the between-shift
+    // case it exists to serve. DISTINCT ON over the joined set picks the most
+    // recent window that actually contains an interval, which is the point.
+    db.$queryRaw<LastShiftRow[]>`
+      SELECT DISTINCT ON (si."lineId")
+        si."lineId" AS "lineId", w."shiftDate" AS "shiftDate", w."shiftId" AS "shiftId"
+      FROM state_interval si
+      JOIN v_shift_windows w
+        ON si."startTime" >= w."shiftStart" AND si."startTime" < w."shiftEnd"
+      ORDER BY si."lineId", w."shiftStart" DESC
+    `,
   ]);
 
   const currentShift = currentShiftRows[0] ?? null;
@@ -113,6 +142,7 @@ export async function GET(): Promise<Response> {
   };
 
   const goodByLine = new Map(goodCounts.map((r) => [r.lineId, r.goodCnt ?? 0]));
+  const lastShiftByLine = new Map(lastShifts.map((r) => [r.lineId, r]));
   const openIntervalsByLine = new Map<string, OpenIntervalRow[]>();
   for (const row of openIntervals) {
     const arr = openIntervalsByLine.get(row.lineId) ?? [];
@@ -146,6 +176,12 @@ export async function GET(): Promise<Response> {
       targetCount,
       shiftDate: currentShift?.shiftDate ?? null,
       shiftId: currentShift?.shiftId ?? null,
+      // Fallback for clients choosing a default selection when no shift is
+      // active. NOT the same as shiftDate/shiftId above — those stay null so
+      // "is a shift running right now?" remains answerable (goodCount/
+      // targetCount N/A depend on it).
+      lastShiftDate: lastShiftByLine.get(line.id)?.shiftDate ?? null,
+      lastShiftId: lastShiftByLine.get(line.id)?.shiftId ?? null,
       // Machines strip (03-02-PLAN.md Task 2 deviation, see file header).
       machines: lineIntervals
         .slice()

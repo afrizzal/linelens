@@ -15,6 +15,9 @@ interface AndonLineSummary {
   lineName: string;
   shiftDate: string | null;
   shiftId: string | null;
+  /** WINDOWS 3+4 fallback: the last shift this line has data for. Non-null even between shifts. */
+  lastShiftDate: string | null;
+  lastShiftId: string | null;
 }
 
 interface TimelineResponse {
@@ -87,22 +90,41 @@ function TimelineContent() {
   // lineId/shiftDate use `prev ||` guards; shiftId is gated on
   // `shiftIdFromUrl.current` so a URL-derived initial value above always
   // wins, for all three fields.
+  // WINDOWS 3+4: a deep link pins the selection immediately (CR-01 — the
+  // andon effect must never steer a drill-down away from its own shift), and
+  // so does any manual pick. Only an unpinned page auto-follows.
+  const shiftPinned = useRef(
+    shiftIdFromUrl.current || searchParams.get("shiftDate") !== null,
+  );
+  const simDay = simClock.simNow ? simClock.simNow.toISOString().slice(0, 10) : "";
+
   useEffect(() => {
     fetch("/api/andon")
       .then((res) => res.json())
       .then((data: AndonLineSummary[]) => {
         setLines(data);
+        const resolvedLineId = lineId || data[0]?.lineId || "";
         setLineId((prev) => prev || data[0]?.lineId || "");
+        if (shiftPinned.current) return;
+
+        // Same precedence as the OEE page: active shift → this line's last
+        // shift with data → the sim-today fallback below. Without the middle
+        // branch the page renders N/A for the third of every sim-day that
+        // falls outside 07:00-23:00 (WINDOWS entry 3).
         const activeShift = data.find((l) => l.shiftDate && l.shiftId);
-        if (activeShift) {
-          setShiftDate((prev) => prev || activeShift.shiftDate!);
-          if (!shiftIdFromUrl.current) {
-            setShiftId(activeShift.shiftId!);
-          }
+        const forLine = data.find((l) => l.lineId === resolvedLineId) ?? data[0];
+        const next = activeShift
+          ? { date: activeShift.shiftDate!, id: activeShift.shiftId! }
+          : forLine?.lastShiftDate && forLine?.lastShiftId
+            ? { date: forLine.lastShiftDate, id: forLine.lastShiftId }
+            : null;
+        if (next) {
+          setShiftDate(next.date);
+          if (!shiftIdFromUrl.current) setShiftId(next.id);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [simDay, lineId, searchParams]);
 
   useEffect(() => {
     if (shiftDate || !simClock.simNow) return;
@@ -139,7 +161,14 @@ function TimelineContent() {
               </option>
             ))}
           </Select>
-          <Select ariaLabel="Shift" value={shiftId} onChange={setShiftId}>
+          <Select
+            ariaLabel="Shift"
+            value={shiftId}
+            onChange={(v) => {
+              shiftPinned.current = true;
+              setShiftId(v);
+            }}
+          >
             {SHIFT_OPTIONS.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLive } from "@/hooks/use-live";
 import { useSimClock } from "@/hooks/use-sim-clock";
 import { Select } from "@/components/ui/select";
@@ -14,6 +14,9 @@ interface AndonLineSummary {
   lineName: string;
   shiftDate: string | null;
   shiftId: string | null;
+  /** WINDOWS 3+4 fallback: the last shift this line has data for. Non-null even between shifts. */
+  lastShiftDate: string | null;
+  lastShiftId: string | null;
 }
 
 interface LineOeeRow {
@@ -69,26 +72,48 @@ export default function OeePage() {
 
   const simClock = useSimClock();
 
+  // WINDOWS 3+4: once the user picks a shift, stop auto-following. Until
+  // then the selection tracks the server's view so the page never sits on a
+  // stale sim-day after a rollover.
+  const shiftPinned = useRef(false);
+  const simDay = simClock.simNow ? simClock.simNow.toISOString().slice(0, 10) : "";
+
   // Seed the line list + a sane default (line, shift) from /api/andon, which
-  // already resolves "the currently active shift" server-side — no separate
-  // shift-metadata endpoint needed.
+  // resolves "the currently active shift" server-side.
+  //
+  // Re-runs on sim-day rollover (`simDay` dep) — WINDOWS entry 4: this used to
+  // seed once with `prev || …` and then silently show a stale date forever.
   useEffect(() => {
     fetch("/api/andon")
       .then((res) => res.json())
       .then((data: AndonLineSummary[]) => {
         setLines(data);
+        const resolvedLineId = lineId || data[0]?.lineId || "";
         setLineId((prev) => prev || data[0]?.lineId || "");
+        if (shiftPinned.current) return;
+
+        // Precedence: the shift running right now → the last shift this line
+        // actually has data for → nothing (the sim-today fallback below).
+        // Shifts cover only 07:00-23:00, so between 23:00 and 07:00 — a third
+        // of every sim-day — there IS no active shift, and defaulting to
+        // sim-today+S1 renders the whole page N/A (WINDOWS entry 3).
         const activeShift = data.find((l) => l.shiftDate && l.shiftId);
-        if (activeShift) {
-          setShiftDate((prev) => prev || activeShift.shiftDate!);
-          setShiftId((prev) => (prev === SHIFT_OPTIONS[0].id ? activeShift.shiftId! : prev));
+        const forLine = data.find((l) => l.lineId === resolvedLineId) ?? data[0];
+        const next = activeShift
+          ? { date: activeShift.shiftDate!, id: activeShift.shiftId! }
+          : forLine?.lastShiftDate && forLine?.lastShiftId
+            ? { date: forLine.lastShiftDate, id: forLine.lastShiftId }
+            : null;
+        if (next) {
+          setShiftDate(next.date);
+          setShiftId(next.id);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [simDay, lineId]);
 
-  // Fallback default shiftDate = today's sim date, once the clock resolves,
-  // if /api/andon found no currently-active shift (between shifts).
+  // Last-resort default: today's sim date, if /api/andon offered neither an
+  // active shift nor any historical one (an empty database).
   useEffect(() => {
     if (shiftDate || !simClock.simNow) return;
     setShiftDate(simClock.simNow.toISOString().slice(0, 10));
@@ -127,7 +152,14 @@ export default function OeePage() {
               </option>
             ))}
           </Select>
-          <Select ariaLabel="Shift" value={shiftId} onChange={setShiftId}>
+          <Select
+            ariaLabel="Shift"
+            value={shiftId}
+            onChange={(v) => {
+              shiftPinned.current = true;
+              setShiftId(v);
+            }}
+          >
             {SHIFT_OPTIONS.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
