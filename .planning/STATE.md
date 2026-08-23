@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: difot-pareto-dds
-status: executing
-stopped_at: Completed 04-02-PLAN.md (drill-down SQL + order detail UI + causality proof) -- ready for 04-03
-last_updated: "2026-08-23T05:51:16.707Z"
+status: verifying
+stopped_at: Completed 04-03-PLAN.md (Losses Pareto + DDS screen) -- Phase 04 fully executed, ready for verification
+last_updated: "2026-08-23T06:29:45.136Z"
 last_activity: 2026-08-23
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 Phase: 04 (difot-pareto-dds) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-23 — Phase 04 execution started
 
-Progress: [████████░░] 79% (3/14 plans)
+Progress: [█████████░] 86% (3/14 plans)
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [████████░░] 79% (3/14 plans)
 | Phase 03 P3 | 25min | 3 tasks | 8 files |
 | Phase 04 P1 | 90min | 3 tasks | 21 files |
 | Phase 04 P2 | 210min | 3 tasks | 9 files |
+| Phase 04 P3 | 55min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-02: DEEP-LINK Option A (sim-time window highlight) chosen over Option B (populate dead stateIntervalId) -- stays in-scope, honest sub-interval caveat for rules 3/4/5
 - [Phase ?]: 04-02: causality test's control-line assertion compares L3's raw machine_event stream, not order status -- machines rotate through all 3 products over time, confounding order-status-level comparison across line boundaries
 - [Phase ?]: 04-02: injected breakdown duration tuned 90min->4h in causality.test.ts for deterministic proof at seed 42 -- same mechanism, larger magnitude
+- [Phase ?]: 04-03: actions.ts OPTION A -- pure DDS action generator lives at apps/web/src/lib/dds-actions.ts, not apps/worker (Turbopack workspace-resolution constraint, same class Phase 3 hit twice)
+- [Phase ?]: 04-03: lib/loss-pareto.ts and lib/dds-actions.ts kept self-contained (no @linelens/contracts import) matching lib/timeline-data.ts's precedent; reason/category labels resolved by the API route via a reason_code SQL join instead
+- [Phase ?]: 04-03: /api/dds Delivery (DIFOT/late count) and Escalations stay plant-wide regardless of the optional lineId param, per the DDS spec's own v_difot (plant-wide) citation
 
 ### Pending Todos
 
@@ -133,6 +137,7 @@ None yet.
 - 03-03: OEE/timeline page defaults land on an empty shift during sim 23:00-07:00 (8/24 real min) — N/A render is correct per project rule but a demo-credibility risk (1-in-3 chance of blank screen). Deferred by explicit user decision at the 03-03 checkpoint; see deferred-items.md and WINDOWS.md ledger entry 3. Not blocking Phase 3.
 - 04-01: two pre-existing local Windows dev-environment quirks encountered (not phase defects) -- a native postgres.exe permanently squats host port 5432 (workaround: remap throwaway containers to an alternate port for host-based prisma/psql access; docker compose's internal networking is unaffected), and prisma migrate dev/reset hung indefinitely multiple times for undiagnosed reasons (workaround: wipe the DB volume and re-apply the full migration set fresh).
 - 04-02: allocateGoodProduction (apps/worker/src/orders/allocate.ts) re-fetches every open order's full allocation list per COUNTS event -- cost grows with open-order backlog depth. Confirmed under load building the causality test; logged as WINDOWS entry 10 (todo). Not blocking at demo scale.
+- 04-03: /api/dds's non-null Delivery/escalation-by-DIFOT path not observed live within the session's time budget (sim day hadn't reached 2026-01-07+ orders-due window). WINDOWS entry 11. Not blocking -- 18 unit tests cover the exact code paths including the DIFOT<80% threshold boundary.
 
 ### Quick Tasks Completed
 
@@ -143,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-23T05:51:16.685Z
-Stopped at: Completed 04-02-PLAN.md (drill-down SQL + order detail UI + causality proof) -- ready for 04-03
+Last session: 2026-08-23T06:29:45.097Z
+Stopped at: Completed 04-03-PLAN.md (Losses Pareto + DDS screen) -- Phase 04 fully executed, ready for verification
 Resume file: None

@@ -26,7 +26,7 @@ Requirement quality bar: specific, testable, viewer-centric (the "user" of this 
 ### Dashboard (DASH)
 
 - [x] **DASH-01**: A viewer sees a real-time OEE waterfall (A×P×Q) per line/shift
-- [ ] **DASH-02**: A viewer sees a Six Big Losses Pareto / Top Losses report, stackable per shift
+- [x] **DASH-02**: A viewer sees a Six Big Losses Pareto / Top Losses report, stackable per shift
 - [x] **DASH-03**: A viewer sees a color-coded production timeline per line (state bands over time)
 - [x] **DASH-04**: A viewer sees an andon board with all lines on one screen — production state (Running/Down/Changeover/Break) + good count + target count — updating live via SSE
 
@@ -37,7 +37,7 @@ Requirement quality bar: specific, testable, viewer-centric (the "user" of this 
 
 ### DDS Screen (DDS)
 
-- [ ] **DDS-01**: A viewer sees a Daily Direction Setting screen: yesterday's performance summary (safety/quality/delivery + OEE + top loss), top-3 actions today with owners, escalation status
+- [x] **DDS-01**: A viewer sees a Daily Direction Setting screen: yesterday's performance summary (safety/quality/delivery + OEE + top loss), top-3 actions today with owners, escalation status
 
 ### Distribution (DIST)
 
@@ -87,10 +87,10 @@ Every v1 requirement maps to exactly one phase. Coverage: 24/24 mapped.
 | DASH-03 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
 | DASH-04 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
 | SIM-05 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
-| DASH-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DASH-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Complete |
 | DIFOT-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Complete |
 | DIFOT-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Complete |
-| DDS-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DDS-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Complete |
 | DIST-01 | Phase 5 — Distribution | Pending |
 | DIST-02 | Phase 5 — Distribution | Pending |
 | DIST-03 | Phase 5 — Distribution | Pending |
