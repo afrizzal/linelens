@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 Phase: 04 (difot-pareto-dds) — EXECUTING
 Plan: 3 of 3
 Status: Phase complete — ready for verification
-Last activity: 2026-08-23 — Phase 04 execution started
+Last activity: 2026-08-23 — Completed quick task 260823-jre: Playwright smoke tests for the Phase 4 screens
 
 Progress: [█████████░] 86% (3/14 plans)
 
@@ -145,6 +145,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260822-f2w | Patch 03-01-PLAN.md with the two Phase-02 sim-time contract deltas (`sim_now() AT TIME ZONE 'UTC'` cast + raw-pg ISO-'Z' binding) and bring `apps/web/package.json` into scope | 2026-08-22 | deff23a | [260822-f2w-patch-planning-phases-03-live-dashboard-](./quick/260822-f2w-patch-planning-phases-03-live-dashboard-/) |
 | 260822-vuv | Patch the three Phase-04 plans with Phase-02/03 contract deltas: the dead `loss_event.stateIntervalId` column that 04-02's drill-down deep-link designed around, the Phase-03 web conventions (Turbopack exports subpath, `lib/db.ts` singleton, ISO-'Z' sim-time binding), plus three planner-found defects — 04-01 missing `files_modified` entries, an unresolvable cross-app import in 04-03, and a `useSearchParams`/`<Suspense>` trap that passes `next dev` but fails `next build` | 2026-08-22 | 372b0f2 | [260822-vuv-patch-the-three-phase-04-plans-with-phas](./quick/260822-vuv-patch-the-three-phase-04-plans-with-phas/) |
+| 260823-jre | Add Playwright smoke tests for the Phase 4 screens (orders drill-down, losses Pareto, DDS) — 6 browser tests cross-checking every rendered number against the same endpoint's JSON in-run; also fixed `pnpm smoke` omitting the `worker` service and gave the Pareto canvas an `sr-only` data table (assertable + screen-reader readable). Closed WINDOWS entry 11 (populated DDS Delivery branch observed live); entries 8 and 9 stay open — their causal halves need a 24-real-minute sim-day, outside a 60s test budget | 2026-08-23 | aab9c3d | [260823-jre-add-playwright-smoke-tests-for-the-phase](./quick/260823-jre-add-playwright-smoke-tests-for-the-phase/) |
 
 ## Session Continuity
 
