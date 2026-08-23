@@ -1,10 +1,14 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
+import { PlantConfigSchema, simNow as computeSimNow } from '@linelens/contracts';
 import { createDb, seedIfEmpty, type Db } from '@linelens/db';
 import { startDerivationLoop } from './derive/runner.js';
 import { createIngestion } from './ingest.js';
 import { createNotifier } from './notify.js';
+import { ensureOrderBookSeeded } from './orders/generate.js';
 
 const logger = pino({ name: 'linelens-worker', level: process.env.LOG_LEVEL ?? 'info' });
 
@@ -16,6 +20,15 @@ const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const MQTT_URL = process.env.MQTT_URL ?? 'mqtt://localhost:1883';
 const SIMULATOR_URL = process.env.SIMULATOR_URL ?? 'http://localhost:4000';
 const CLOCK_POLL_MS = 2000;
+
+// 04-01-PLAN.md Task 1: same plant.config.json (`seed` field) the simulator
+// and db seed use — order generation shares this global seed so it stays
+// deterministic across restarts without inventing a second config source.
+const loadPlantConfigSeed = (): number => {
+  const configPath = process.env.PLANT_CONFIG_PATH ?? path.join(REPO_ROOT, 'plant.config.json');
+  const raw = readFileSync(configPath, 'utf-8');
+  return PlantConfigSchema.parse(JSON.parse(raw)).seed;
+};
 
 /**
  * Run pending migrations at boot (compose-friendly: a fresh `docker compose
@@ -71,27 +84,57 @@ const clockRowsEqual = (a: ClockRow, b: ClockRow | null): boolean =>
  * every 2s: ClockState fields are absolute (not deltas), so sim_now()
  * stays continuous between polls — the poll only needs to catch rebases
  * (boot, warm-start completion, /control/speed).
+ *
+ * Returns the fetched clock (or null on failure) so the caller can derive
+ * "today, sim-time" for order-book generation without a second fetch.
  */
-const syncClock = async (db: Db): Promise<void> => {
+const syncClock = async (db: Db): Promise<SimulatorClockState | null> => {
   try {
     const res = await fetch(`${SIMULATOR_URL}/clock`);
     if (!res.ok) {
       logger.warn({ status: res.status }, 'clock poll: non-OK response');
-      return;
+      return null;
     }
     const clock = (await res.json()) as SimulatorClockState;
     const row = toClockRow(clock);
     const existing = await db.simClock.findUnique({ where: { id: 1 } });
-    if (clockRowsEqual(row, existing)) return;
-
-    await db.simClock.upsert({
-      where: { id: 1 },
-      create: { id: 1, ...row },
-      update: row,
-    });
-    logger.info({ clock }, 'sim_clock synced');
+    if (!clockRowsEqual(row, existing)) {
+      await db.simClock.upsert({
+        where: { id: 1 },
+        create: { id: 1, ...row },
+        update: row,
+      });
+      logger.info({ clock }, 'sim_clock synced');
+    }
+    return clock;
   } catch (err) {
     logger.warn({ err }, 'clock poll failed');
+    return null;
+  }
+};
+
+/**
+ * 04-01-PLAN.md Task 1: "runs when a new sim-day starts". No dedicated
+ * day-change event exists, so this runs on every clock-poll tick instead —
+ * `ensureOrderBookSeeded` is a cheap idempotent existence check per sim-day
+ * (see orders/generate.ts), so calling it repeatedly is safe and correct.
+ */
+const syncOrderBook = async (db: Db, clock: SimulatorClockState | null, seed: number): Promise<void> => {
+  if (!clock) return;
+  try {
+    const simNowMs = computeSimNow(
+      {
+        epochSimMs: clock.epochSimMs,
+        startedAtRealMs: clock.startedAtRealMs,
+        speed: clock.speed,
+        pausedAtRealMs: clock.pausedAtRealMs,
+      },
+      Date.now(),
+    );
+    const simDay = new Date(simNowMs).toISOString().slice(0, 10);
+    await ensureOrderBookSeeded(db, seed, simDay);
+  } catch (err) {
+    logger.warn({ err }, 'order book seeding failed');
   }
 };
 
@@ -102,8 +145,13 @@ const main = async (): Promise<void> => {
   const seedResult = await seedIfEmpty(db);
   logger.info(seedResult, 'seed-if-empty complete');
 
-  await syncClock(db);
-  const clockInterval = setInterval(() => void syncClock(db), CLOCK_POLL_MS);
+  const plantSeed = loadPlantConfigSeed();
+  const clockTick = async (): Promise<void> => {
+    const clock = await syncClock(db);
+    await syncOrderBook(db, clock, plantSeed);
+  };
+  await clockTick();
+  const clockInterval = setInterval(() => void clockTick(), CLOCK_POLL_MS);
 
   const ingestion = createIngestion({ db, logger, mqttUrl: MQTT_URL });
 

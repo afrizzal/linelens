@@ -226,6 +226,50 @@ model MachineCursor {
   @@map("machine_cursor")
 }
 
+/// Seeded, deterministic order book (04-01-PLAN.md Task 1). Generated per
+/// sim-day by apps/worker/src/orders/generate.ts from a seeded RNG (contracts
+/// seed + sim-day salt), sized so healthy lines mostly ship on time and
+/// breakdowns push real orders late (DIFOT-01). orderDate/dueDate/shippedAt
+/// are naive sim-time columns — SAME convention as machine_event.simTime
+/// (TIMESTAMP(3) WITHOUT TIME ZONE); every comparison against sim_now() in
+/// views.sql goes through `sim_now() AT TIME ZONE 'UTC'`, never bare
+/// sim_now() (see the standing convention note on that file).
+model CustomerOrder {
+  id          String    @id @default(cuid())
+  productId   String
+  customer    String
+  qtyOrdered  Int
+  orderDate   DateTime
+  dueDate     DateTime
+  shippedAt   DateTime?
+
+  allocations Allocation[]
+
+  @@index([productId, dueDate])
+  @@map("customer_order")
+}
+
+/// FIFO allocation of good production to an open order (04-01-PLAN.md Task
+/// 2) — one row per COUNTS event that contributed units to this order.
+/// Idempotent per source event: `[orderId, sourceEventId]` is unique, so
+/// re-processing the same COUNTS event on worker restart never double-
+/// allocates. producedAt mirrors the source event's simTime (naive,
+/// same convention as CustomerOrder above).
+model Allocation {
+  id            String   @id @default(cuid())
+  orderId       String
+  lineId        String
+  machineId     String
+  qty           Int
+  producedAt    DateTime
+  sourceEventId BigInt
+
+  order         CustomerOrder @relation(fields: [orderId], references: [id])
+
+  @@unique([orderId, sourceEventId])
+  @@map("allocation")
+}
+
 /// Singleton row mirroring the simulator's authoritative ClockState
 /// (@linelens/contracts sim-clock.ts). The worker is the sole writer: it
 /// polls GET {SIMULATOR_URL}/clock and upserts this row whenever any field
