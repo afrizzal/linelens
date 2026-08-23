@@ -145,6 +145,20 @@ const handleCounts = async (
       sourceEventId: event.id,
     });
   }
+
+  // 04-01-PLAN.md Task 2: INLINE HOOK, not a second scan — FIFO-allocate
+  // good production to open orders for this COUNTS event's product, in the
+  // SAME transaction/batch this call is already part of (no second cursor).
+  if (goodDelta > 0 && event.productId) {
+    await store.allocateGoodProduction({
+      productId: event.productId,
+      lineId: event.lineId,
+      machineId,
+      goodDelta,
+      simTime: event.simTime,
+      sourceEventId: event.id,
+    });
+  }
 };
 
 const handleAlarm = async (

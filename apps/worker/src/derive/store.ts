@@ -71,6 +71,25 @@ export interface DerivationStore {
   listSmallStopsInWindow(machineId: string, startMs: number, endMs: number): Promise<SmallStopWindowRow[]>;
 
   setCursor(machineId: string, lastEventId: bigint, lastSeq: number): Promise<void>;
+
+  /**
+   * 04-01-PLAN.md Task 2: allocate `goodDelta` good-production units from a
+   * COUNTS event to open orders for `productId`, FIFO by due date, inside
+   * the SAME transaction/batch this store instance governs. PrismaStore
+   * delegates to `apps/worker/src/orders/allocate.ts` using its own `tx`
+   * (order tables are a new, self-contained domain — no MemoryStore
+   * equivalent state needed). MemoryStore no-ops: order allocation has its
+   * own dedicated fixture tests (test/orders/allocate.test.ts) against
+   * `planFifoAllocation` directly, independent of DerivationStore/MemoryStore.
+   */
+  allocateGoodProduction(params: {
+    productId: string;
+    lineId: string;
+    machineId: string;
+    goodDelta: number;
+    simTime: Date;
+    sourceEventId: bigint;
+  }): Promise<void>;
 }
 
 /** In-memory fixture store — no I/O. Mirrors the shape PrismaStore persists, for unit tests. */
@@ -191,6 +210,12 @@ export class MemoryStore implements DerivationStore {
 
   setCursor(machineId: string, lastEventId: bigint, lastSeq: number): Promise<void> {
     this.cursors.set(machineId, { lastEventId, lastSeq });
+    return Promise.resolve();
+  }
+
+  // No-op — see DerivationStore doc: order allocation is tested standalone
+  // (test/orders/allocate.test.ts) against planFifoAllocation directly.
+  allocateGoodProduction(): Promise<void> {
     return Promise.resolve();
   }
 

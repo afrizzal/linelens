@@ -1,5 +1,6 @@
 import type { Prisma, StateInterval as StateIntervalRow } from '@linelens/db';
 import type { ShiftDef } from '@linelens/contracts';
+import { allocateGoodProduction } from '../orders/allocate.js';
 import type { DerivationStore } from './store.js';
 import type {
   CountsWindowRow,
@@ -174,5 +175,18 @@ export class PrismaStore implements DerivationStore {
       create: { machineId, lastEventId, lastSeq },
       update: { lastEventId, lastSeq },
     });
+  }
+
+  // 04-01-PLAN.md Task 2: delegates to orders/allocate.ts using THIS store's
+  // own `tx` — same transaction, same MachineCursor, no second scan.
+  async allocateGoodProduction(params: {
+    productId: string;
+    lineId: string;
+    machineId: string;
+    goodDelta: number;
+    simTime: Date;
+    sourceEventId: bigint;
+  }): Promise<void> {
+    await allocateGoodProduction(this.tx, params);
   }
 }
