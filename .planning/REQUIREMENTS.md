@@ -32,7 +32,7 @@ Requirement quality bar: specific, testable, viewer-centric (the "user" of this 
 
 ### DIFOT Module (DIFOT)
 
-- [ ] **DIFOT-01**: Simulated order book (demand per SKU/day) is fulfilled from simulated production output, producing a DIFOT % (in-full, on-time) view
+- [x] **DIFOT-01**: Simulated order book (demand per SKU/day) is fulfilled from simulated production output, producing a DIFOT % (in-full, on-time) view
 - [ ] **DIFOT-02**: A viewer can drill down from a late/at-risk order to the contributing machine-level loss events (the money shot: "breakdown Line 2 → 3 orders late")
 
 ### DDS Screen (DDS)
@@ -88,7 +88,7 @@ Every v1 requirement maps to exactly one phase. Coverage: 24/24 mapped.
 | DASH-04 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
 | SIM-05 | Phase 3 — Live Dashboard (Vertical Slice) | Complete |
 | DASH-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
-| DIFOT-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
+| DIFOT-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Complete |
 | DIFOT-02 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
 | DDS-01 | Phase 4 — DIFOT, Losses Pareto & DDS | Pending |
 | DIST-01 | Phase 5 — Distribution | Pending |

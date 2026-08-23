@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 6
+open_count: 7
 waived_count: 0
 fixed_count: 1
-total_count: 7
-last_updated: 2026-08-22T14:16:05.797Z
+total_count: 8
+last_updated: 2026-08-23T02:29:47.920Z
 ---
 
 # Broken Windows Ledger
@@ -22,6 +22,7 @@ last_updated: 2026-08-22T14:16:05.797Z
 | 5 | 03 | unmet-truth | apps/web/src/app/api/control/inject/route.ts |  | POST /api/control/inject rate limiting is client-side only, no server-side enforcement. Code review 03-REVIEW.md WR-03. Demo appliance with allow_anonymous MQTT so low risk, but the endpoint is reachable by anyone who can load the page. Deferred by user decision at the phase-03 code-review gate. | open |  | 2026-08-22T14:16:02.301Z |  |
 | 6 | 03 | todo | apps/web/src/app/api/stream/route.ts |  | console.* logging used in the SSE route and lib/listener.ts instead of the project-mandated pino structured logger (STACK.md); pino is not installed in apps/web. Code review 03-REVIEW.md WR-04. Deferred by user decision at the phase-03 code-review gate. | open |  | 2026-08-22T14:16:04.239Z |  |
 | 7 | 03 | todo | apps/web/src/app/(dashboard)/oee/page.tsx |  | Duplicated line/shift selector boilerplate and a duplicated formatPct helper across oee/page.tsx and timeline/page.tsx. Code review 03-REVIEW.md WR-05/WR-06 plus Info findings IN-01 (unused lineId option on useLive) and IN-02 (no zod validation at the client fetch boundary). Deferred by user decision at the phase-03 code-review gate. | open |  | 2026-08-22T14:16:05.797Z |  |
+| 8 | 04 | unrun-verify | apps/web/src/app/(dashboard)/orders/page.tsx |  | Plan 04-01 Task 3 <verify> 'inject-breakdown on a line, wait ~1 sim-day -> that line's product shows lower DIFOT contribution' was not observed live within the executor's time budget. Indirect confidence: a live ~90min sim run already produced natural AT_RISK orders on CYC-C, and the fixture-level FIFO/status unit tests cover all four v_order_status branches. | open |  | 2026-08-23T02:29:47.920Z |  |
 
 ````json
 [
@@ -108,6 +109,19 @@ last_updated: 2026-08-22T14:16:05.797Z
     "reason": "",
     "recorded_at": "2026-08-22T14:16:05.797Z",
     "resolved_at": null
+  },
+  {
+    "id": 8,
+    "kind": "unrun-verify",
+    "phase": "04",
+    "file": "apps/web/src/app/(dashboard)/orders/page.tsx",
+    "line": null,
+    "description": "Plan 04-01 Task 3 <verify> 'inject-breakdown on a line, wait ~1 sim-day -> that line's product shows lower DIFOT contribution' was not observed live within the executor's time budget. Indirect confidence: a live ~90min sim run already produced natural AT_RISK orders on CYC-C, and the fixture-level FIFO/status unit tests cover all four v_order_status branches.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-23T02:29:47.920Z",
+    "resolved_at": null
   }
 ]
 ````
+

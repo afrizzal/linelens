@@ -220,6 +220,10 @@ None - no external service configuration required.
 - `v_difot_line` is ready for 04-03's DDS escalation rule ("line DIFOT < 80%").
 - Not yet verified: a live inject-breakdown → DIFOT-contribution-drop test over a full sim-day (the plan's overall `<verification>` "live check" item). The fixture-level FIFO/status mechanics and a live 90-minute sim run (which already produced natural AT_RISK orders on CYC-C, proving the AT_RISK branch fires under real conditions) give strong indirect confidence, but the specific "problem line's product goes AT_RISK/LATE" scenario from the plan's Task 3 `<verify>` was not observed within this session's time budget. Logged to `.planning/WINDOWS.md` as an unrun-verify.
 
+## Self-Check: PASSED
+
+All 12 created files verified present on disk; all 4 commit hashes (95b1c3e, 9b161ea, 2a5b36c, a6bcf49) verified present in `git log`.
+
 ---
 *Phase: 04-difot-pareto-dds*
 *Completed: 2026-08-23*

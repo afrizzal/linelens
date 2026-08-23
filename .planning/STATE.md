@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04
-current_phase_name: DIFOT, Losses Pareto & Daily Direction Setting
-status: "Phase 03 shipped — PR #7"
-stopped_at: Completed 03-03-PLAN.md (production timeline + inject-breakdown + human-verified cascade) — Phase 3 execution complete, ready for verification
-last_updated: "2026-08-22T16:30:03.598Z"
-last_activity: 2026-08-22
+current_phase_name: difot-pareto-dds
+status: executing
+stopped_at: Completed 04-01-PLAN.md (order book + FIFO allocation + DIFOT views) -- ready for 04-02
+last_updated: "2026-08-23T02:30:40.619Z"
+last_activity: 2026-08-23
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 14
-  completed_plans: 9
-last_activity_desc: "Completed quick task 260822-f2w: patched 03-01-PLAN.md with Phase-02 sim-time contract deltas"
+  completed_plans: 10
 ---
 
 # Project State
@@ -23,16 +23,16 @@ last_activity_desc: "Completed quick task 260822-f2w: patched 03-01-PLAN.md with
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** A 60-second demo makes "machine downtime = broken customer promises" viscerally clear — breakdown on Line 2 → 3 orders late this week — with industry-correct OEE mechanics.
-**Current focus:** Phase 03 — live-dashboard
+**Current focus:** Phase 04 — difot-pareto-dds
 
 ## Current Position
 
-Phase: 04 — DIFOT, Losses Pareto & Daily Direction Setting
-Plan: Not started
-Status: Phase 03 shipped — PR #7
-Last activity: 2026-08-22
+Phase: 04 (difot-pareto-dds) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-08-23 — Phase 04 execution started
 
-Progress: [██████░░░░] 64% (3/14 plans)
+Progress: [███████░░░] 71% (3/14 plans)
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [██████░░░░] 64% (3/14 plans)
 | Phase 03 P1 | 73min | 3 tasks | 12 files |
 | Phase 03 P2 | 90min | 3 tasks | 27 files |
 | Phase 03 P3 | 25min | 3 tasks | 8 files |
+| Phase 04 P1 | 90min | 3 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-03: ECharts custom-series renderItem Gantt pattern proven end-to-end (spike -> real component -> live human verification) — the plan's flagged front-loaded risk resolved; no future plan needs to re-derisk the charting library choice
 - [Phase ?]: 03-03: GET /api/timeline widened to include shift-window/break-calendar metadata (Rule 2 deviation) so the Gantt's break shading and x-axis clamp both work
 - [Phase ?]: 03-03: POST /api/control/inject established as the thin-proxy pattern for demo controls (web forwards to SIMULATOR_URL, browser never talks to the simulator container directly) — reusable for future demo controls
+- [Phase ?]: 04-01: allocateGoodProduction added to DerivationStore (PrismaStore delegates to orders/allocate.ts with its own tx; MemoryStore no-ops) rather than threading a raw Prisma.TransactionClient through intervals.ts -- keeps the existing store-abstraction convention
+- [Phase ?]: 04-01: v_order_status current_good_rate measured off machine_event.productId directly, not a join through machine.currentProductId -- more precise mid-changeover
 
 ### Pending Todos
 
@@ -124,6 +127,7 @@ None yet.
 - ~~03-01: Turbopack cannot resolve packages/db/generated/prisma/client.ts through @linelens/db inside apps/web's next dev (docker) — 4 read-model routes return 500 live~~ **RESOLVED 2026-08-22 (40b1308).** Verified live in docker: /api/andon and /api/sim-clock 200 with real data; /api/oee and /api/timeline 400 without required query params (expected) and 200 with valid lineId/shiftDate/shiftId; /api/stream not regressed; worker + simulator start clean; 90 tests pass.
 - Toolchain gotcha (this machine, pre-existing): plain `pnpm` — even Volta-shimmed — spawns children under Node v20.20.2 rather than the pinned 24.10.0, which breaks jsdom/undici in apps/web/test. Use `volta run --node 24.10.0 -- pnpm test` for a clean run. Not fixed; unrelated to any phase-03 change.
 - 03-03: OEE/timeline page defaults land on an empty shift during sim 23:00-07:00 (8/24 real min) — N/A render is correct per project rule but a demo-credibility risk (1-in-3 chance of blank screen). Deferred by explicit user decision at the 03-03 checkpoint; see deferred-items.md and WINDOWS.md ledger entry 3. Not blocking Phase 3.
+- 04-01: two pre-existing local Windows dev-environment quirks encountered (not phase defects) -- a native postgres.exe permanently squats host port 5432 (workaround: remap throwaway containers to an alternate port for host-based prisma/psql access; docker compose's internal networking is unaffected), and prisma migrate dev/reset hung indefinitely multiple times for undiagnosed reasons (workaround: wipe the DB volume and re-apply the full migration set fresh).
 
 ### Quick Tasks Completed
 
@@ -134,6 +138,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-22T13:42:02.205Z
-Stopped at: Completed 03-03-PLAN.md (production timeline + inject-breakdown + human-verified cascade) — Phase 3 execution complete, ready for verification
+Last session: 2026-08-23T02:30:40.598Z
+Stopped at: Completed 04-01-PLAN.md (order book + FIFO allocation + DIFOT views) -- ready for 04-02
 Resume file: None
