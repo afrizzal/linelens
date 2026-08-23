@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLive } from "@/hooks/use-live";
 import { useSimClock } from "@/hooks/use-sim-clock";
@@ -57,12 +57,21 @@ function TimelineContent() {
   // 04-02-PLAN.md Task 2 DEEP-LINK MECHANISM: the order drill-down links
   // here with lineId/shiftDate/shiftId/machineId/highlightStart/
   // highlightEnd explicitly set from the loss row — seed picker state FROM
-  // the URL on first render (never overridden by the andon-default effect
-  // below, which only fills in what's still empty via the `prev ||` guard).
+  // the URL on first render, and never let the andon-default effect below
+  // override an explicit deep-link value: lineId/shiftDate rely on their
+  // `""` sentinel (a `prev ||` guard is safe, `""` can't collide with a real
+  // value); shiftId can't use that trick because its default (`"S1"`) IS a
+  // real value, so it tracks URL provenance in `shiftIdFromUrl` instead.
   const [lines, setLines] = useState<AndonLineSummary[]>([]);
   const [lineId, setLineId] = useState<string>(() => searchParams.get("lineId") ?? "");
   const [shiftDate, setShiftDate] = useState<string>(() => searchParams.get("shiftDate") ?? "");
   const [shiftId, setShiftId] = useState<string>(() => searchParams.get("shiftId") ?? SHIFT_OPTIONS[0].id);
+  // `shiftId`'s default (SHIFT_OPTIONS[0].id === "S1") is a real, selectable
+  // value, unlike lineId/shiftDate's "" sentinel — so the andon-default
+  // effect below can't tell "deep-link explicitly chose Shift 1" apart from
+  // "nothing was ever set" by comparing state to that default alone. Track
+  // URL provenance independently, once, at mount.
+  const shiftIdFromUrl = useRef(searchParams.get("shiftId") !== null);
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
 
   const highlightMachineId = searchParams.get("machineId");
@@ -74,8 +83,10 @@ function TimelineContent() {
   const simClock = useSimClock();
 
   // Seed the line list + a sane default (line, shift) from /api/andon's
-  // already-resolved current shift — same pattern as the OEE page. The
-  // `prev ||` guards mean a URL-derived initial value above always wins.
+  // already-resolved current shift — same pattern as the OEE page.
+  // lineId/shiftDate use `prev ||` guards; shiftId is gated on
+  // `shiftIdFromUrl.current` so a URL-derived initial value above always
+  // wins, for all three fields.
   useEffect(() => {
     fetch("/api/andon")
       .then((res) => res.json())
@@ -85,7 +96,9 @@ function TimelineContent() {
         const activeShift = data.find((l) => l.shiftDate && l.shiftId);
         if (activeShift) {
           setShiftDate((prev) => prev || activeShift.shiftDate!);
-          setShiftId((prev) => (prev === SHIFT_OPTIONS[0].id ? activeShift.shiftId! : prev));
+          if (!shiftIdFromUrl.current) {
+            setShiftId(activeShift.shiftId!);
+          }
         }
       })
       .catch(() => {});

@@ -89,8 +89,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 const deepLinkHref = (loss: LossRow): string => {
   const params = new URLSearchParams({ lineId: loss.lineId });
   // Explicitly SET shiftDate/shiftId from the loss row rather than relying
-  // on the timeline page's own mount-time default seeding (WINDOWS entries
-  // 3/4 — that default is the broken path for ~1/3 of sim-time).
+  // on the timeline page's own mount-time default seeding — the Timeline
+  // page tracks whether shiftId came from this URL (see `shiftIdFromUrl` in
+  // timeline/page.tsx) so an explicit deep-link value always wins over the
+  // andon-derived current-shift default, including the Shift-1 case (fixed:
+  // 04-REVIEW.md CR-01).
   if (loss.shiftDate) params.set("shiftDate", loss.shiftDate);
   if (loss.shiftId) params.set("shiftId", loss.shiftId);
   if (loss.machineId) params.set("machineId", loss.machineId);

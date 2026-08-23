@@ -311,6 +311,22 @@ test.describe('phase4 screens', () => {
     expect(url).toContain('highlightStart=');
     expect(url).toContain('highlightEnd=');
 
+    // Regression guard for 04-REVIEW.md CR-01: the URL containing
+    // `shiftId=` is not sufficient — the mount-time /api/andon effect used
+    // to silently overwrite an explicit `shiftId=S1` deep link back to
+    // whatever shift is "currently active" (S1 collided with its own
+    // unset-default sentinel). Assert the rendered shift picker actually
+    // converged on the deep-linked shift, not just that the URL carries it.
+    // `shiftId` is schema-nullable on loss_event, so only assert convergence
+    // when the top-ranked loss actually carries one (deepLinkHref omits the
+    // param entirely otherwise, and there is nothing to converge on).
+    const linkedShiftId = new URL(url).searchParams.get('shiftId');
+    expect(linkedShiftId, 'deep-link href shiftId must round-trip through the URL unchanged').toBe(top.shiftId);
+    if (linkedShiftId) {
+      const shiftSelect = page.locator('select[aria-label="Shift"]');
+      await expect(shiftSelect).toHaveValue(linkedShiftId);
+    }
+
     expect(pageErrors, `client-side errors on /timeline: ${pageErrors.join('; ')}`).toEqual([]);
   });
 
