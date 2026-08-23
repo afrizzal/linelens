@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 11
+open_count: 12
 waived_count: 0
 fixed_count: 2
-total_count: 13
-last_updated: 2026-08-23T09:41:22.149Z
+total_count: 14
+last_updated: 2026-08-23T11:25:36.510Z
 ---
 
 # Broken Windows Ledger
@@ -28,6 +28,7 @@ last_updated: 2026-08-23T09:41:22.149Z
 | 11 | 04 | unrun-verify | apps/web/src/app/api/dds/route.ts |  | Live docker check of /api/dds's non-null Delivery path (DIFOT%/lateCount populated, and a line DIFOT<80% escalation firing) was not observed within the executor's time budget -- the pinned warm-start sim-day (2026-01-05) has zero orders due yet (due dates start 2026-01-07+), so the live spot-check only exercised the N/A path (which caught and fixed a real 0-vs-null bug, see 9d516fe). Indirect confidence: /api/orders?day=2026-01-08 confirmed real DIFOT 72.7% (11 due, 8 on-time) data exists in the running stack for when sim time reaches that day, and deriveEscalations/generateDdsActions have 18 unit tests covering the non-null paths including the exact DIFOT<80% threshold. | fixed |  | 2026-08-23T06:20:34.691Z | 2026-08-23T08:33:14.015Z |
 | 12 | quick-260823-jre | todo | tests/smoke/compose-stack.spec.ts |  | The Phase-1 compose smoke suite is not re-runnable against a long-lived stack: 'inject-breakdown is accepted and takes a real machine down' POSTs to /control/inject-breakdown on L1, but apps/simulator/src/control.ts:77 returns 404 'no injectable machine found' when that line's machine is already down from an earlier run. Reproduced 2026-08-23: two prior injects left L1-M1 down until sim 2026-01-09 while the sim clock was ~2026-01-06, so a re-run failed 2/11 (this test plus the Sparkplug telemetry test). Fresh-stack runs pass. Fix options: target a line with an available machine, release the injected breakdown in an afterEach, or assert 404-with-that-message as an acceptable already-down outcome. | open |  | 2026-08-23T08:48:43.956Z |  |
 | 13 | 04 | unrun-verify | tests/smoke/phase4-screens.spec.ts |  | CR-01's regression guard has never executed. The code-review fix 4650a12 (timeline shift-picker sentinel) added a shift-convergence assertion to the 'drill-down money shot' smoke test, but that test test.skip()s whenever no LATE/AT_RISK order exists, and it skipped on every verification run after the fix (2026-08-23). The fix itself is verified by typecheck, next build (/timeline still prerenders static), apps/web vitest 7 files/34 tests green, and code reading -- but the assertion that would catch a reintroduction of CR-01 is unproven. It HAS run before (the quick-task executor's earlier run hit a genuine LATE order), so this resolves itself once sim time produces one; forcing it via breakdown injection is explicitly forbidden (v_order_status's COALESCE(NULLIF(recent.goodPerSec,0), fallback.goodPerSec, 0) makes a fully-downed product fall back to the ideal rate and read healthy). Re-run pnpm test:smoke on a stack whose sim clock has produced a LATE order and confirm test 9 passes rather than skips. | open |  | 2026-08-23T09:41:22.149Z |  |
+| 14 | 04 | todo | docker-compose.yml |  | Restarting the compose stack desynchronizes the sim clock from accumulated event history. The simulator warm-starts from WARM_START_DAY (2026-01-05) on every container start, but the Postgres volume keeps events from prior runs that reached later sim times. Observed 2026-08-23 after several docker compose stop/start cycles: machine_event max simTime = 2026-01-11 12:17 while sim_now() = 2026-01-10 16:34 -- roughly 20 sim-hours of data sitting in the future relative to the clock. Symptoms: /api/andon reports every machine BREAK with a future 'since' timestamp, and POST /control/inject-breakdown returns 404 'no injectable machine found' because no machine is in EXECUTE, which blocks the inject-breakdown demo entirely. Does NOT affect a stranger running docker compose up once on a clean volume (the Phase-05 target scenario), but WILL affect Phase 05's GIF recording if the stack is restarted between takes. Workaround: docker compose down -v for a clean volume before a recording run. Proper fix would be for the worker/simulator to either resume the clock from max(machine_event.simTime) or refuse to warm-start over existing later history. | open |  | 2026-08-23T11:25:36.510Z |  |
 
 ````json
 [
@@ -185,6 +186,18 @@ last_updated: 2026-08-23T09:41:22.149Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-23T09:41:22.149Z",
+    "resolved_at": null
+  },
+  {
+    "id": 14,
+    "kind": "todo",
+    "phase": "04",
+    "file": "docker-compose.yml",
+    "line": null,
+    "description": "Restarting the compose stack desynchronizes the sim clock from accumulated event history. The simulator warm-starts from WARM_START_DAY (2026-01-05) on every container start, but the Postgres volume keeps events from prior runs that reached later sim times. Observed 2026-08-23 after several docker compose stop/start cycles: machine_event max simTime = 2026-01-11 12:17 while sim_now() = 2026-01-10 16:34 -- roughly 20 sim-hours of data sitting in the future relative to the clock. Symptoms: /api/andon reports every machine BREAK with a future 'since' timestamp, and POST /control/inject-breakdown returns 404 'no injectable machine found' because no machine is in EXECUTE, which blocks the inject-breakdown demo entirely. Does NOT affect a stranger running docker compose up once on a clean volume (the Phase-05 target scenario), but WILL affect Phase 05's GIF recording if the stack is restarted between takes. Workaround: docker compose down -v for a clean volume before a recording run. Proper fix would be for the worker/simulator to either resume the clock from max(machine_event.simTime) or refuse to warm-start over existing later history.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-23T11:25:36.510Z",
     "resolved_at": null
   }
 ]
