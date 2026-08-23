@@ -16,8 +16,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/oee", label: "OEE" },
   { href: "/timeline", label: "Timeline" },
   { href: "/orders", label: "Orders" },
-  { href: "/losses", label: "Losses", disabled: true, disabledLabel: "Phase 4" },
-  { href: "/dds", label: "DDS", disabled: true, disabledLabel: "Phase 4" },
+  { href: "/losses", label: "Losses" },
+  { href: "/dds", label: "DDS" },
 ];
 
 /**
