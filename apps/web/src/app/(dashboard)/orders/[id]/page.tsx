@@ -180,7 +180,11 @@ export default function OrderDetailPage() {
         <Link href="/orders" className="text-sm text-foreground/60 hover:underline">
           ← Back to Orders
         </Link>
-        {order && <StatusChip status={order.status} />}
+        {order && (
+          <span data-testid="order-status">
+            <StatusChip status={order.status} />
+          </span>
+        )}
       </div>
 
       <Card>
@@ -188,15 +192,15 @@ export default function OrderDetailPage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div>
               <div className="text-xs text-foreground/50">Customer</div>
-              <div className="mt-1 text-sm font-medium">{order.customer}</div>
+              <div data-testid="order-customer" className="mt-1 text-sm font-medium">{order.customer}</div>
             </div>
             <div>
               <div className="text-xs text-foreground/50">Product</div>
-              <div className="mt-1 font-mono text-sm">{order.productId}</div>
+              <div data-testid="order-product" className="mt-1 font-mono text-sm">{order.productId}</div>
             </div>
             <div className="sm:col-span-1">
               <div className="text-xs text-foreground/50">Qty (allocated/ordered)</div>
-              <div className="mt-1 text-sm font-medium">
+              <div data-testid="order-qty" className="mt-1 text-sm font-medium">
                 {order.allocatedQty}/{order.qtyOrdered}
               </div>
               <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -226,6 +230,7 @@ export default function OrderDetailPage() {
 
       {headline && (
         <Card
+          data-testid="order-headline"
           className={
             order?.status === "ON_TIME"
               ? "border-state-execute/30 bg-state-execute/5"
@@ -242,11 +247,13 @@ export default function OrderDetailPage() {
             Contributing loss events {losses.length > 0 && `(ranked by estimated lost units)`}
           </h2>
           {losses.length > 0 ? (
-            <div className="space-y-2">
+            <div data-testid="loss-list" className="space-y-2">
               {losses.map((loss, i) => (
                 <Link
                   key={`${loss.machineId ?? "m"}-${loss.windowStart}-${i}`}
                   href={deepLinkHref(loss)}
+                  data-testid="loss-row"
+                  data-est-units={loss.estLostUnits ?? ""}
                   className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2.5 text-sm transition-colors hover:border-white/25 hover:bg-white/[0.05]"
                 >
                   <span
@@ -289,7 +296,7 @@ export default function OrderDetailPage() {
       <Card>
         <h2 className="mb-3 text-sm font-medium text-foreground/70">Allocations</h2>
         {allocations.length > 0 ? (
-          <table className="w-full text-left text-sm">
+          <table data-testid="allocations-table" className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 text-foreground/50">
                 <th className="py-2 pr-4 font-medium">Line</th>
@@ -300,7 +307,7 @@ export default function OrderDetailPage() {
             </thead>
             <tbody>
               {allocations.map((a) => (
-                <tr key={a.id} className="border-b border-white/5 last:border-0">
+                <tr key={a.id} data-testid="allocation-row" className="border-b border-white/5 last:border-0">
                   <td className="py-2 pr-4 font-mono">{a.lineId}</td>
                   <td className="py-2 pr-4 font-mono">{a.machineId}</td>
                   <td className="py-2 pr-4">{a.qty}</td>

@@ -44,6 +44,7 @@ const WEB_URL = process.env.LINELENS_WEB_URL ?? 'http://localhost:3000';
 // today's database — see plan research findings for the code citations):
 const DUE_DAY_WITH_ORDERS = '2026-01-07'; // WARM_START_DAY + 2, always has orders due.
 const DUE_DAY_WITHOUT_ORDERS = '2026-01-06'; // Structurally can never have an order due.
+const LOSS_DAY = '2026-01-05'; // Fully-replayed warm-start day, losses on every line.
 
 interface OrdersResponse {
   day: string;
@@ -54,6 +55,49 @@ interface OrdersResponse {
 }
 
 const KNOWN_STATUS_LABELS = ['On Time', 'Late', 'At Risk', 'Open'];
+const STATUS_LABEL: Record<string, string> = {
+  ON_TIME: 'On Time',
+  LATE: 'Late',
+  AT_RISK: 'At Risk',
+  OPEN: 'Open',
+};
+
+interface OrderDetailResponse {
+  order: { orderId: string; customer: string; productId: string; qtyOrdered: number; allocatedQty: number; status: string };
+  allocations: { id: string }[];
+  losses: { estLostUnits: number | null; lineId: string; lineName: string; shiftDate: string | null; shiftId: string | null }[];
+}
+
+interface LossParetoRowLike {
+  reasonCode: string;
+  category: string;
+  reasonLabel: string;
+  shiftId: string;
+  lostTimeSec: number;
+  lostUnits: number | null;
+}
+
+interface LossesResponse {
+  lineId: string;
+  day: string;
+  rows: LossParetoRowLike[];
+}
+
+const CATEGORY_LABEL_VOCAB = [
+  'Unplanned Stop',
+  'Planned Stop',
+  'Small Stop',
+  'Slow Cycle',
+  'Startup Reject',
+  'Production Reject',
+];
+
+// Due-days a `/api/orders?day=` scan checks for a LATE/AT_RISK order, given
+// the fixture invariants (WARM_START_DAY + 2 = 2026-01-07 is the earliest
+// possible due-day) and the current sim day at plan time (2026-01-07). This
+// window is deliberately small — a full calendar scan is unnecessary and
+// would each require its own worker-ingestion wait.
+const CANDIDATE_DUE_DAYS = ['2026-01-07', '2026-01-08', '2026-01-09', '2026-01-10'];
 
 test.describe('phase4 screens', () => {
   test.beforeAll(async () => {
@@ -160,5 +204,179 @@ test.describe('phase4 screens', () => {
 
       expect(pageErrors, `client-side errors: ${pageErrors.join('; ')}`).toEqual([]);
     });
+  });
+
+  test('order drill-down navigates and cross-checks against /api/orders/{id}', async ({ page, request }) => {
+    test.slow(); // a completed warm-start order can carry thousands of allocations to render
+
+    const pageErrors: string[] = [];
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await page.goto('/orders', { waitUntil: 'domcontentloaded' });
+    const dateInput = page.locator('input[aria-label="Due date"]');
+    await expect(dateInput).not.toHaveValue('', { timeout: 15_000 });
+    await dateInput.fill(DUE_DAY_WITH_ORDERS);
+
+    const listApi = await request.get(`${WEB_URL}/api/orders?day=${DUE_DAY_WITH_ORDERS}`);
+    const listJson = (await listApi.json()) as OrdersResponse;
+    expect(listJson.orders.length, 'fixture invariant broken: due-day 2026-01-07 must have orders').toBeGreaterThan(0);
+    const target = listJson.orders[0];
+
+    const row = page.locator(`[data-testid="order-row"][data-order-id="${target.orderId}"]`);
+    await expect(row).toBeVisible();
+    await row.getByRole('link').first().click();
+    await expect(page).toHaveURL(new RegExp(`/orders/${target.orderId}$`));
+
+    const detailApi = await request.get(`${WEB_URL}/api/orders/${target.orderId}`);
+    expect(detailApi.ok(), `GET /api/orders/${target.orderId} returned ${detailApi.status()}`).toBe(true);
+    const detail = (await detailApi.json()) as OrderDetailResponse;
+
+    await expect(page.getByTestId('order-customer')).toHaveText(detail.order.customer);
+    await expect(page.getByTestId('order-product')).toHaveText(detail.order.productId);
+    await expect(page.getByTestId('order-qty')).toHaveText(`${detail.order.allocatedQty}/${detail.order.qtyOrdered}`);
+    await expect(page.getByTestId('order-status')).toContainText(STATUS_LABEL[detail.order.status] ?? detail.order.status);
+
+    const allocationRows = page.getByTestId('allocation-row');
+    await expect(allocationRows).toHaveCount(detail.allocations.length);
+
+    if (detail.order.status === 'ON_TIME') {
+      // Documented UI rendering rule, not an accident: the ranked loss list
+      // is reserved for LATE/AT_RISK orders — assert its absence for ON_TIME.
+      await expect(page.getByTestId('order-headline')).toBeVisible();
+      await expect(page.getByTestId('loss-list')).toHaveCount(0);
+    }
+
+    expect(pageErrors, `client-side errors: ${pageErrors.join('; ')}`).toEqual([]);
+  });
+
+  test('drill-down money shot: ranked loss list, deep-link to timeline (skips loudly if no LATE/AT_RISK order exists)', async ({
+    page,
+    request,
+  }) => {
+    let target: { orderId: string; status: string } | null = null;
+    for (const day of CANDIDATE_DUE_DAYS) {
+      const res = await request.get(`${WEB_URL}/api/orders?day=${day}`);
+      if (!res.ok()) continue;
+      const json = (await res.json()) as OrdersResponse;
+      const found = json.orders.find((o) => o.status === 'LATE' || o.status === 'AT_RISK');
+      if (found) {
+        target = found;
+        break;
+      }
+    }
+
+    test.skip(
+      target === null,
+      `No LATE or AT_RISK order exists on any of ${CANDIDATE_DUE_DAYS.join(', ')} on the live stack right now — ` +
+        'the ranked-loss/deep-link path was NOT exercised by this run. WINDOWS entry 9 remains open; this is the ' +
+        'honest outcome, not a soft pass.',
+    );
+    if (!target) return;
+
+    const pageErrors: string[] = [];
+    const detailApi = await request.get(`${WEB_URL}/api/orders/${target.orderId}`);
+    const detail = (await detailApi.json()) as OrderDetailResponse;
+    expect(detail.losses.length, 'a LATE/AT_RISK order must have at least one ranked loss to make this test meaningful').toBeGreaterThan(0);
+
+    await page.goto(`/orders/${target.orderId}`, { waitUntil: 'domcontentloaded' });
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await expect(page.getByTestId('order-headline')).toBeVisible();
+    const top = detail.losses[0];
+    // The headline names the top loss's line — proves the headline is wired
+    // to the SAME ranked list the loss-row elements below render.
+    await expect(page.getByTestId('order-headline')).toContainText(top.lineName);
+
+    const lossRows = page.getByTestId('loss-row');
+    const count = await lossRows.count();
+    const estUnits: number[] = [];
+    for (let i = 0; i < count; i++) {
+      estUnits.push(Number(await lossRows.nth(i).getAttribute('data-est-units')));
+    }
+    for (let i = 1; i < estUnits.length; i++) {
+      expect(estUnits[i], `loss row ${i} (${estUnits[i]}) must not exceed row ${i - 1} (${estUnits[i - 1]})`).toBeLessThanOrEqual(
+        estUnits[i - 1],
+      );
+    }
+
+    const firstHref = await lossRows.first().getAttribute('href');
+    expect(firstHref).toContain('lineId=');
+    expect(firstHref).toContain('highlightStart=');
+    expect(firstHref).toContain('highlightEnd=');
+
+    await lossRows.first().click();
+    await expect(page).toHaveURL(/\/timeline\?/);
+    const url = page.url();
+    expect(url).toContain('lineId=');
+    expect(url).toContain('highlightStart=');
+    expect(url).toContain('highlightEnd=');
+
+    expect(pageErrors, `client-side errors on /timeline: ${pageErrors.join('; ')}`).toEqual([]);
+  });
+
+  test('losses pareto renders API-matching buckets, cumulative line, and category toggle', async ({ page, request }) => {
+    await page.goto('/losses', { waitUntil: 'domcontentloaded' });
+
+    const lineSelect = page.locator('select[aria-label="Line"]');
+    await expect(async () => {
+      const optionCount = await lineSelect.locator('option').count();
+      expect(optionCount).toBeGreaterThan(0);
+    }).toPass({ timeout: 15_000 });
+
+    const lineId = await lineSelect.inputValue();
+    expect(lineId).not.toBe('');
+
+    const dayInput = page.locator('input[aria-label="Sim day"]');
+    await dayInput.fill(LOSS_DAY);
+
+    const apiRes = await request.get(`${WEB_URL}/api/losses?lineId=${lineId}&day=${LOSS_DAY}`);
+    expect(apiRes.ok(), `GET /api/losses?lineId=${lineId}&day=${LOSS_DAY} returned ${apiRes.status()}`).toBe(true);
+    const api = (await apiRes.json()) as LossesResponse;
+    expect(api.rows.length, `fixture invariant broken: line ${lineId} must have losses on ${LOSS_DAY}`).toBeGreaterThan(0);
+
+    await expect(page.getByTestId('losses-empty')).toHaveCount(0);
+    const chartCanvas = page.locator('[data-testid="pareto-chart"] canvas');
+    await expect(chartCanvas).toBeVisible();
+    const box = await chartCanvas.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(0);
+
+    const distinctReasons = new Set(api.rows.map((r) => r.reasonCode));
+    const paretoRows = page.getByTestId('pareto-row');
+    await expect(paretoRows).toHaveCount(distinctReasons.size);
+
+    const rowCount = await paretoRows.count();
+    const minutes: number[] = [];
+    const cumulative: number[] = [];
+    for (let i = 0; i < rowCount; i++) {
+      minutes.push(Number(await paretoRows.nth(i).getAttribute('data-minutes')));
+      cumulative.push(Number(await paretoRows.nth(i).getAttribute('data-cumulative')));
+    }
+    for (let i = 1; i < minutes.length; i++) {
+      expect(minutes[i]).toBeLessThanOrEqual(minutes[i - 1]);
+      expect(cumulative[i]).toBeGreaterThanOrEqual(cumulative[i - 1]);
+    }
+    expect(cumulative[cumulative.length - 1]).toBeGreaterThan(99);
+    expect(cumulative[cumulative.length - 1]).toBeLessThanOrEqual(100.5);
+
+    const apiTotalMin = api.rows.reduce((sum, r) => sum + r.lostTimeSec, 0) / 60;
+    const tableTotalMin = minutes.reduce((a, b) => a + b, 0);
+    expect(Math.abs(tableTotalMin - apiTotalMin)).toBeLessThan(0.5);
+
+    // Toggle to "by category" — must move real data, not just button styling.
+    const distinctCategories = new Set(api.rows.map((r) => r.category));
+    await page.getByRole('button', { name: 'By category' }).click();
+    await expect(paretoRows).toHaveCount(distinctCategories.size, { timeout: 5_000 });
+
+    const categoryRowCount = await paretoRows.count();
+    const categoryMinutes: number[] = [];
+    for (let i = 0; i < categoryRowCount; i++) {
+      const visibleLabel = (await paretoRows.nth(i).locator('td').first().innerText()).trim();
+      expect(CATEGORY_LABEL_VOCAB, `row ${i} visible label "${visibleLabel}" not in the six-category vocabulary`).toContain(
+        visibleLabel,
+      );
+      categoryMinutes.push(Number(await paretoRows.nth(i).getAttribute('data-minutes')));
+    }
+    const categoryTotalMin = categoryMinutes.reduce((a, b) => a + b, 0);
+    expect(Math.abs(categoryTotalMin - apiTotalMin)).toBeLessThan(0.5);
   });
 });

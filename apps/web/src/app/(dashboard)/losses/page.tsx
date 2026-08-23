@@ -109,11 +109,13 @@ export default function LossesPage() {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="pareto-chart">
         {rows.length > 0 ? (
           <Pareto rows={rows} groupBy={groupBy} />
         ) : (
-          <p className="py-16 text-center text-sm text-foreground/50">No losses recorded yet — let the plant run.</p>
+          <p data-testid="losses-empty" className="py-16 text-center text-sm text-foreground/50">
+            No losses recorded yet — let the plant run.
+          </p>
         )}
       </Card>
     </div>

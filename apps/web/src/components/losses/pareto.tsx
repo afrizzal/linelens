@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts/core";
 import { BarChart, LineChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
@@ -70,11 +70,15 @@ export function Pareto({ rows, groupBy }: ParetoProps) {
     };
   }, []);
 
+  // Pure transform lifted to render scope (out of the setOption effect) so
+  // the SAME buckets feed both the canvas chart and the screen-reader table
+  // below — one source of truth, no risk of the two drifting apart.
+  const { shiftIds, buckets } = useMemo(() => deriveParetoSeries(rows, groupBy), [rows, groupBy]);
+
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
 
-    const { shiftIds, buckets } = deriveParetoSeries(rows, groupBy);
     const categories = buckets.map((b) => (groupBy === "category" ? (CATEGORY_LABELS[b.label] ?? b.label) : b.label));
 
     const shiftSeries = shiftIds.map((shiftId, i) => ({
@@ -153,7 +157,39 @@ export function Pareto({ rows, groupBy }: ParetoProps) {
       ],
       series: [...shiftSeries, cumulativeSeries],
     });
-  }, [rows, groupBy]);
+  }, [buckets, shiftIds, groupBy]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: 420 }} />;
+  return (
+    <>
+      <div ref={containerRef} style={{ width: "100%", height: 420 }} />
+      {/* Screen-reader-only data table: the canvas chart has no text
+          alternative for either assistive tech or a browser test, and the
+          same `buckets` feed both so the two can never silently diverge. */}
+      <table data-testid="pareto-table" className="sr-only">
+        <caption>Six Big Losses Pareto, {groupBy === "category" ? "grouped by category" : "grouped by reason"}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Label</th>
+            <th scope="col">Minutes</th>
+            <th scope="col">Cumulative percent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {buckets.map((b) => (
+            <tr
+              key={b.key}
+              data-testid="pareto-row"
+              data-label={b.label}
+              data-minutes={round1(b.lostTimeMin)}
+              data-cumulative={round1(b.cumulativePct)}
+            >
+              <td>{groupBy === "category" ? (CATEGORY_LABELS[b.label] ?? b.label) : b.label}</td>
+              <td>{round1(b.lostTimeMin)} min</td>
+              <td>{round1(b.cumulativePct)}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
 }

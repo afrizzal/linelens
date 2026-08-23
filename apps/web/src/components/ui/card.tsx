@@ -9,15 +9,17 @@ export function Card({
   children,
   className = "",
   style,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
   style?: React.CSSProperties;
-}) {
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={`rounded-lg border border-white/10 bg-panel p-4 ${className}`}
       style={style}
+      {...rest}
     >
       {children}
     </div>
