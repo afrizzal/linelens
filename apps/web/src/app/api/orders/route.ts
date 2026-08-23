@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { parseDayParam } from "@/lib/day-param";
 
 /**
  * GET /api/orders?day=YYYY-MM-DD — v_order_status rows due on that sim-day,
@@ -16,6 +17,12 @@ import { db } from "@/lib/db";
  * doesn't apply here — that rule is specifically about naive TIMESTAMP
  * columns' local-OS-TZ-dependent Date serialization; a bare date literal
  * compared via `::date` has no time-of-day component to misinterpret.
+ *
+ * Calendar validity (not just shape) is enforced upstream by
+ * `parseDayParam()` (T-04, 04-SECURITY.md) — a calendar-invalid but
+ * shape-matching value like `2026-02-30` is rejected with 400 before it
+ * can reach the `::date` cast below, so that cast can no longer receive a
+ * rollover value.
  */
 export const dynamic = "force-dynamic";
 
@@ -46,15 +53,16 @@ interface DifotLineRow extends DifotRow {
 
 export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
-  const day = searchParams.get("day");
+  const parsedDay = parseDayParam(searchParams.get("day"));
 
-  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-    return Response.json({ error: "day query param is required (YYYY-MM-DD)" }, { status: 400 });
+  if (!parsedDay) {
+    return Response.json(
+      { error: "day query param must be a real calendar date in YYYY-MM-DD form" },
+      { status: 400 },
+    );
   }
 
-  const yesterday = new Date(`${day}T00:00:00.000Z`);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  const { day, yesterday } = parsedDay;
 
   const [orders, difotRows, difotYesterdayRows, byLineRows] = await Promise.all([
     db.$queryRaw<OrderStatusRow[]>`
@@ -63,7 +71,7 @@ export async function GET(request: Request): Promise<Response> {
       ORDER BY "dueDate" ASC, "orderId" ASC
     `,
     db.$queryRaw<DifotRow[]>`SELECT * FROM v_difot WHERE "dueDay" = ${day}`,
-    db.$queryRaw<DifotRow[]>`SELECT * FROM v_difot WHERE "dueDay" = ${yesterdayStr}`,
+    db.$queryRaw<DifotRow[]>`SELECT * FROM v_difot WHERE "dueDay" = ${yesterday}`,
     db.$queryRaw<DifotLineRow[]>`SELECT * FROM v_difot_line WHERE "dueDay" = ${day} ORDER BY "lineId" ASC`,
   ]);
 

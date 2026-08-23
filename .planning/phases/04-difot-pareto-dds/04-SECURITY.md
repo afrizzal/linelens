@@ -67,6 +67,18 @@ stated goal is a public MIT repo that a stranger clones and runs. A 500 on a pla
 date is a poor first impression in exactly that scenario. Recommended as a cheap fix before
 Phase 05 rather than a documented acceptance.
 
+**T-04 RESOLVED 2026-08-23** (quick task `260823-o4c`). Root-caused to two distinct failure
+classes, not one — this entry's original attribution to the Postgres `22008` cast error alone
+was incomplete: `2026-99-99` never reached SQL at all, it threw `RangeError: Invalid time
+value` one line earlier, at `route.ts:57` (`.toISOString()` on an Invalid Date), before the
+`::date` cast at `route.ts:59` was ever evaluated. Closed both classes with a single
+round-trip-validating pure helper, `apps/web/src/lib/day-param.ts::parseDayParam()`: (1) a NaN
+guard ordered strictly before any `toISOString()` call closes the INVALID-DATE class
+(`2026-99-99`, `2026-13-01`, etc.); (2) a round-trip re-serialization check closes the
+ROLLOVER class (`2026-02-30`, which `new Date()` silently normalizes to Mar 2). Both classes
+now return a clean `400 { error: "..." }` from `/api/orders`; `2026-01-05` is unaffected (200,
+unchanged response shape). Regression-tested in `apps/web/test/day-param.test.ts`.
+
 ## Security Audit Trail
 
 | Date | Auditor | Mode | Result |
