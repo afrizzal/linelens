@@ -15,7 +15,7 @@
     "dev": "pnpm -r --parallel --if-present run dev",
     "build": "pnpm -r --if-present run build",
     "test:smoke": "playwright test",
-    "smoke": "docker compose up -d --wait db mqtt simulator web && playwright test"
+    "smoke": "docker compose up -d --wait db mqtt simulator worker web && playwright test"
   },
   "devDependencies": {
     "@linelens/contracts": "workspace:*",

@@ -106,10 +106,13 @@ export default function OrdersPage() {
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <div className="text-sm text-foreground/60">DIFOT</div>
-            <div className={`mt-1 text-3xl font-bold ${difot ? "text-foreground" : "text-foreground/40"}`}>
+            <div
+              data-testid="difot-value"
+              className={`mt-1 text-3xl font-bold ${difot ? "text-foreground" : "text-foreground/40"}`}
+            >
               {formatPct(difot?.difotPct)}
             </div>
-            <div className="mt-1 text-sm text-foreground/50">
+            <div data-testid="difot-subtitle" className="mt-1 text-sm text-foreground/50">
               {difot ? `${difot.onTimeCount}/${difot.totalDue} orders on time, in full` : "No orders due this day"}
             </div>
           </div>
@@ -125,11 +128,18 @@ export default function OrdersPage() {
       {byLine.length > 0 && (
         <Card>
           <h2 className="mb-3 text-sm font-medium text-foreground/70">DIFOT by line</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div data-testid="difot-by-line" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {byLine.map((l) => (
-              <div key={l.lineId} className="rounded-md border border-white/10 bg-background/40 p-3">
+              <div
+                key={l.lineId}
+                data-testid="difot-line-tile"
+                data-line-id={l.lineId}
+                className="rounded-md border border-white/10 bg-background/40 p-3"
+              >
                 <div className="text-xs text-foreground/50">{l.lineId}</div>
-                <div className="mt-1 text-lg font-semibold">{formatPct(l.difotPct)}</div>
+                <div data-testid="difot-line-value" className="mt-1 text-lg font-semibold">
+                  {formatPct(l.difotPct)}
+                </div>
                 <div className="text-xs text-foreground/40">
                   {l.onTimeCount}/{l.totalDue} on time
                 </div>
@@ -141,7 +151,7 @@ export default function OrdersPage() {
 
       <Card>
         {orders.length > 0 ? (
-          <table className="w-full text-left text-sm">
+          <table data-testid="orders-table" className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 text-foreground/50">
                 <th className="py-2 pr-4 font-medium">Customer</th>
@@ -153,7 +163,12 @@ export default function OrdersPage() {
             </thead>
             <tbody>
               {orders.map((o) => (
-                <tr key={o.orderId} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                <tr
+                  key={o.orderId}
+                  data-testid="order-row"
+                  data-order-id={o.orderId}
+                  className="border-b border-white/5 last:border-0 hover:bg-white/5"
+                >
                   <td className="py-2 pr-4">
                     <Link href={`/orders/${o.orderId}`} className="hover:underline">
                       {o.customer}
@@ -172,7 +187,9 @@ export default function OrdersPage() {
             </tbody>
           </table>
         ) : (
-          <p className="py-16 text-center text-sm text-foreground/50">No orders due this day — N/A.</p>
+          <p data-testid="orders-empty" className="py-16 text-center text-sm text-foreground/50">
+            No orders due this day — N/A.
+          </p>
         )}
       </Card>
     </div>
