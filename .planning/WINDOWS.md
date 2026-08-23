@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 10
+open_count: 11
 waived_count: 0
 fixed_count: 2
-total_count: 12
-last_updated: 2026-08-23T08:48:43.956Z
+total_count: 13
+last_updated: 2026-08-23T09:41:22.149Z
 ---
 
 # Broken Windows Ledger
@@ -27,6 +27,7 @@ last_updated: 2026-08-23T08:48:43.956Z
 | 10 | 04 | todo | apps/worker/src/orders/allocate.ts |  | allocateGoodProduction re-fetches every open order's full allocation list (findMany with include:allocations) on EVERY COUNTS event with goodDelta>0 -- cost grows with open-order backlog depth. Confirmed as a real, reproducible scaling characteristic while building 04-02 Task 3's causality test: a full 8-machine/48-sim-hour scenario did not finish within a 30-minute budget; a scoped-down 4-machine/16-sim-hour scenario took ~5-8 min per run. Already partially mitigated by 04-01's 5s->30s transaction timeout bump. Not blocking at demo scale (a handful of lines/machines, bounded sim history per PROJECT.md), but would need a scoped/paginated open-orders query before a much larger order book or longer-running deployment. | open |  | 2026-08-23T05:48:14.058Z |  |
 | 11 | 04 | unrun-verify | apps/web/src/app/api/dds/route.ts |  | Live docker check of /api/dds's non-null Delivery path (DIFOT%/lateCount populated, and a line DIFOT<80% escalation firing) was not observed within the executor's time budget -- the pinned warm-start sim-day (2026-01-05) has zero orders due yet (due dates start 2026-01-07+), so the live spot-check only exercised the N/A path (which caught and fixed a real 0-vs-null bug, see 9d516fe). Indirect confidence: /api/orders?day=2026-01-08 confirmed real DIFOT 72.7% (11 due, 8 on-time) data exists in the running stack for when sim time reaches that day, and deriveEscalations/generateDdsActions have 18 unit tests covering the non-null paths including the exact DIFOT<80% threshold. | fixed |  | 2026-08-23T06:20:34.691Z | 2026-08-23T08:33:14.015Z |
 | 12 | quick-260823-jre | todo | tests/smoke/compose-stack.spec.ts |  | The Phase-1 compose smoke suite is not re-runnable against a long-lived stack: 'inject-breakdown is accepted and takes a real machine down' POSTs to /control/inject-breakdown on L1, but apps/simulator/src/control.ts:77 returns 404 'no injectable machine found' when that line's machine is already down from an earlier run. Reproduced 2026-08-23: two prior injects left L1-M1 down until sim 2026-01-09 while the sim clock was ~2026-01-06, so a re-run failed 2/11 (this test plus the Sparkplug telemetry test). Fresh-stack runs pass. Fix options: target a line with an available machine, release the injected breakdown in an afterEach, or assert 404-with-that-message as an acceptable already-down outcome. | open |  | 2026-08-23T08:48:43.956Z |  |
+| 13 | 04 | unrun-verify | tests/smoke/phase4-screens.spec.ts |  | CR-01's regression guard has never executed. The code-review fix 4650a12 (timeline shift-picker sentinel) added a shift-convergence assertion to the 'drill-down money shot' smoke test, but that test test.skip()s whenever no LATE/AT_RISK order exists, and it skipped on every verification run after the fix (2026-08-23). The fix itself is verified by typecheck, next build (/timeline still prerenders static), apps/web vitest 7 files/34 tests green, and code reading -- but the assertion that would catch a reintroduction of CR-01 is unproven. It HAS run before (the quick-task executor's earlier run hit a genuine LATE order), so this resolves itself once sim time produces one; forcing it via breakdown injection is explicitly forbidden (v_order_status's COALESCE(NULLIF(recent.goodPerSec,0), fallback.goodPerSec, 0) makes a fully-downed product fall back to the ideal rate and read healthy). Re-run pnpm test:smoke on a stack whose sim clock has produced a LATE order and confirm test 9 passes rather than skips. | open |  | 2026-08-23T09:41:22.149Z |  |
 
 ````json
 [
@@ -172,6 +173,18 @@ last_updated: 2026-08-23T08:48:43.956Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-23T08:48:43.956Z",
+    "resolved_at": null
+  },
+  {
+    "id": 13,
+    "kind": "unrun-verify",
+    "phase": "04",
+    "file": "tests/smoke/phase4-screens.spec.ts",
+    "line": null,
+    "description": "CR-01's regression guard has never executed. The code-review fix 4650a12 (timeline shift-picker sentinel) added a shift-convergence assertion to the 'drill-down money shot' smoke test, but that test test.skip()s whenever no LATE/AT_RISK order exists, and it skipped on every verification run after the fix (2026-08-23). The fix itself is verified by typecheck, next build (/timeline still prerenders static), apps/web vitest 7 files/34 tests green, and code reading -- but the assertion that would catch a reintroduction of CR-01 is unproven. It HAS run before (the quick-task executor's earlier run hit a genuine LATE order), so this resolves itself once sim time produces one; forcing it via breakdown injection is explicitly forbidden (v_order_status's COALESCE(NULLIF(recent.goodPerSec,0), fallback.goodPerSec, 0) makes a fully-downed product fall back to the ideal rate and read healthy). Re-run pnpm test:smoke on a stack whose sim clock has produced a LATE order and confirm test 9 passes rather than skips.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-23T09:41:22.149Z",
     "resolved_at": null
   }
 ]
