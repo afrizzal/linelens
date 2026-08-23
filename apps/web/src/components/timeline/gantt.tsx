@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { CustomChart } from "echarts/charts";
 import { DataZoomComponent, GridComponent, MarkAreaComponent, TooltipComponent } from "echarts/components";
@@ -70,11 +70,39 @@ export interface GanttProps {
   shiftEnd: Date;
   /** Sim-time "now" (from useSimClock, server-sourced) — open bars grow live up to this, never past shiftEnd. */
   simNow: Date | null;
+  /**
+   * Deep-link highlight (04-02-PLAN.md Task 2, DEEP-LINK MECHANISM Option
+   * A): pulses the band(s) on `highlightMachineId` overlapping
+   * [highlightStart, highlightEnd) — the order drill-down's "one click
+   * from broken promise to machine cause". For rule-1 (DOWN interval)
+   * losses the window and the band coincide exactly; for sub-interval
+   * losses (rules 3/4/5) the highlight covers "the band this loss falls
+   * inside", not a literal sub-slice — an explicit, honest limitation
+   * (see the plan's OPTION A caveat), unaffected for the demo's headline
+   * breakdown case.
+   */
+  highlightMachineId?: string | null;
+  highlightStartMs?: number | null;
+  highlightEndMs?: number | null;
 }
 
-export function Gantt({ intervals, breaks, shiftStart, shiftEnd, simNow }: GanttProps) {
+const PULSE_INTERVAL_MS = 550;
+const PULSE_OPACITY_LOW = 0.15;
+const PULSE_OPACITY_HIGH = 0.55;
+
+export function Gantt({
+  intervals,
+  breaks,
+  shiftStart,
+  shiftEnd,
+  simNow,
+  highlightMachineId = null,
+  highlightStartMs = null,
+  highlightEndMs = null,
+}: GanttProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
+  const [pulseHigh, setPulseHigh] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -95,6 +123,16 @@ export function Gantt({ intervals, breaks, shiftStart, shiftEnd, simNow }: Gantt
     const shiftEndMs = shiftEnd.getTime();
     return simNow ? Math.min(simNow.getTime(), shiftEndMs) : shiftEndMs;
   }, [shiftEnd, simNow]);
+
+  // Pulse-toggle interval, display-only — never feeds derivation, purely a
+  // CSS-style blink driven through repeated setOption on the highlight
+  // overlay series (see the second `series` entry below).
+  const hasHighlight = highlightMachineId != null && highlightStartMs != null && highlightEndMs != null;
+  useEffect(() => {
+    if (!hasHighlight) return;
+    const id = setInterval(() => setPulseHigh((v) => !v), PULSE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [hasHighlight]);
 
   const { machineIds, rows } = useMemo(() => deriveGanttData(intervals, openEndMs), [intervals, openEndMs]);
   const breakRanges = useMemo(() => deriveBreakRanges(breaks), [breaks]);
@@ -179,9 +217,48 @@ export function Gantt({ intervals, breaks, shiftStart, shiftEnd, simNow }: Gantt
             data: breakRanges.map(([start, end]) => [{ xAxis: start }, { xAxis: end }]),
           },
         },
+        // Deep-link highlight overlay (see GanttProps doc) — a SEPARATE
+        // custom series (not woven into the base bars' renderItem) so the
+        // pulse only touches this one extra draw call per tick, never
+        // recomputes the base 6-machine dataset. categoryIndex resolved
+        // from the CURRENT machineIds — if highlightMachineId isn't on
+        // this line/shift (e.g. picker hasn't caught up yet), data is
+        // empty and nothing renders (never a crash on an out-of-range index).
+        {
+          type: "custom",
+          silent: true,
+          z: 10,
+          renderItem: (params: unknown, api: unknown) => {
+            const p = params as RenderItemParams;
+            const a = api as RenderItemAPI;
+            const categoryIndex = a.value(0) as number;
+            const start = a.coord([a.value(1) as number, categoryIndex]);
+            const end = a.coord([a.value(2) as number, categoryIndex]);
+            const height = a.size([0, 1])[1] * 0.8;
+            const rect = clipRectToBounds(
+              { x: start[0], y: start[1] - height / 2, width: end[0] - start[0], height },
+              { x: p.coordSys.x, y: p.coordSys.y, width: p.coordSys.width, height: p.coordSys.height },
+            );
+            if (!rect) return undefined;
+            return {
+              type: "rect",
+              shape: rect,
+              style: {
+                fill: `rgba(245, 158, 11, ${pulseHigh ? PULSE_OPACITY_HIGH : PULSE_OPACITY_LOW})`,
+                stroke: stateColor("CHANGEOVER"), // amber ring — distinct from every state fill color
+                lineWidth: 2,
+              },
+            };
+          },
+          encode: { x: [1, 2], y: 0 },
+          data:
+            hasHighlight && machineIds.includes(highlightMachineId!)
+              ? [[machineIds.indexOf(highlightMachineId!), highlightStartMs, highlightEndMs]]
+              : [],
+        },
       ],
     });
-  }, [rows, breakRanges, machineIds, shiftStart, shiftEnd]);
+  }, [rows, breakRanges, machineIds, shiftStart, shiftEnd, hasHighlight, highlightMachineId, highlightStartMs, highlightEndMs, pulseHigh]);
 
   return (
     <div

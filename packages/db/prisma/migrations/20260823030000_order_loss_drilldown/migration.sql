@@ -71,6 +71,8 @@ RETURNS TABLE (
   "lostTimeSec" double precision,
   "estLostUnits" double precision,
   injected boolean,
+  "shiftDate" text,
+  "shiftId" text,
   "shortUnits" double precision,
   "totalEstLostUnits" double precision
 ) LANGUAGE sql STABLE AS $$
@@ -113,7 +115,16 @@ RETURNS TABLE (
         WHEN le.factor = 'QUALITY' THEN le."lostUnits"
         ELSE le."lostTimeSec" / NULLIF((SELECT sec FROM ict), 0)
       END AS "estLostUnits",
-      le.injected
+      le.injected,
+      -- Carried straight off loss_event (already populated by
+      -- apps/worker/src/derive/losses.ts — no extra join needed) so the
+      -- web layer can deep-link the timeline picker directly to the
+      -- shift this loss happened in, per the DEEP-LINK MECHANISM note
+      -- (04-02-PLAN.md Task 2): explicitly SET shiftDate/shiftId from the
+      -- loss row rather than relying on the timeline page's broken
+      -- mount-time default seeding.
+      le."shiftDate",
+      le."shiftId"
     FROM loss_event le
     JOIN producing_lines pl ON pl."lineId" = le."lineId"
     CROSS JOIN ctx
@@ -130,6 +141,8 @@ RETURNS TABLE (
     l."lostTimeSec",
     l."estLostUnits",
     l.injected,
+    l."shiftDate",
+    l."shiftId",
     ctx."shortUnits",
     COALESCE((SELECT SUM(x."estLostUnits") FROM losses x), 0) AS "totalEstLostUnits"
   FROM ctx

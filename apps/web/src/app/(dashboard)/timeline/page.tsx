@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLive } from "@/hooks/use-live";
 import { useSimClock } from "@/hooks/use-sim-clock";
 import { Select } from "@/components/ui/select";
@@ -35,18 +36,46 @@ const SHIFT_OPTIONS = [
  * Production timeline page (03-03-PLAN.md Task 1, DASH-03): line + shift
  * picker (consistent with the OEE page), color-coded Gantt of machine
  * state_interval rows, live via useLive.
+ *
+ * `useSearchParams()` must sit inside a `<Suspense>` boundary or `next
+ * build`'s static prerendering fails (works fine under `next dev`, which
+ * is why this is a build-only trap — 04-02-PLAN.md Task 2 implementation
+ * note). The default export below only sets up that boundary; all the
+ * actual state/fetch logic lives in TimelineContent.
  */
 export default function TimelinePage() {
+  return (
+    <Suspense fallback={<div className="py-16 text-center text-sm text-foreground/50">Loading…</div>}>
+      <TimelineContent />
+    </Suspense>
+  );
+}
+
+function TimelineContent() {
+  const searchParams = useSearchParams();
+
+  // 04-02-PLAN.md Task 2 DEEP-LINK MECHANISM: the order drill-down links
+  // here with lineId/shiftDate/shiftId/machineId/highlightStart/
+  // highlightEnd explicitly set from the loss row — seed picker state FROM
+  // the URL on first render (never overridden by the andon-default effect
+  // below, which only fills in what's still empty via the `prev ||` guard).
   const [lines, setLines] = useState<AndonLineSummary[]>([]);
-  const [lineId, setLineId] = useState<string>("");
-  const [shiftDate, setShiftDate] = useState<string>("");
-  const [shiftId, setShiftId] = useState<string>(SHIFT_OPTIONS[0].id);
+  const [lineId, setLineId] = useState<string>(() => searchParams.get("lineId") ?? "");
+  const [shiftDate, setShiftDate] = useState<string>(() => searchParams.get("shiftDate") ?? "");
+  const [shiftId, setShiftId] = useState<string>(() => searchParams.get("shiftId") ?? SHIFT_OPTIONS[0].id);
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
+
+  const highlightMachineId = searchParams.get("machineId");
+  const highlightStartIso = searchParams.get("highlightStart");
+  const highlightEndIso = searchParams.get("highlightEnd");
+  const highlightStartMs = highlightStartIso ? Date.parse(highlightStartIso) : null;
+  const highlightEndMs = highlightEndIso ? Date.parse(highlightEndIso) : null;
 
   const simClock = useSimClock();
 
   // Seed the line list + a sane default (line, shift) from /api/andon's
-  // already-resolved current shift — same pattern as the OEE page.
+  // already-resolved current shift — same pattern as the OEE page. The
+  // `prev ||` guards mean a URL-derived initial value above always wins.
   useEffect(() => {
     fetch("/api/andon")
       .then((res) => res.json())
@@ -123,6 +152,9 @@ export default function TimelinePage() {
             shiftStart={new Date(timeline.shiftStart!)}
             shiftEnd={new Date(timeline.shiftEnd!)}
             simNow={simClock.simNow}
+            highlightMachineId={highlightMachineId}
+            highlightStartMs={highlightStartMs}
+            highlightEndMs={highlightEndMs}
           />
         ) : (
           <p className="py-16 text-center text-sm text-foreground/50">
