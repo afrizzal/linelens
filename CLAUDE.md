@@ -155,13 +155,40 @@ LineLens is a real-time OEE (Overall Equipment Effectiveness) / manufacturing an
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+Established across Phases 1-4 -- follow these, and read the citation before changing one.
+
+- **Sim time is domain time.** No component reads wall-clock for domain logic; every event carries a sim timestamp stamped at the source. SQL that compares against the clock uses `sim_now() AT TIME ZONE 'UTC'`.
+- **Raw pg binds ISO 'Z' strings, never `Date` objects.** For naive `TIMESTAMP` columns, `Date`-parameter binding through raw pg is local-OS-TZ dependent (unlike Prisma's decoding). There is a `SET TimeZone='Asia/Jakarta'` regression test pinning this.
+- **`N/A`, never a false `0`.** Null propagates to the UI as N/A. A zero where there is no data is a lie a plant manager would catch. `COUNT(*)` is cast `::int` (not bigint) because `Response.json()` cannot serialize `BigInt`.
+- **The worker is the sole MQTT consumer and sole Postgres writer.** The web tier reads Postgres and receives live updates via SSE fanned out from `LISTEN/NOTIFY`. Do not add a second writer.
+- **Parse, don't validate, at every boundary.** MQTT payloads and query params go through zod (`packages/contracts`) before use.
+- **Tests assert against the real pipeline where credibility is at stake** -- golden scenarios to 4 dp, acceleration invariance, and a causality test with nothing mocked. Smoke tests that cannot meet their precondition `test.skip()` **loudly** rather than passing hollow (see WINDOWS 13 for why).
+- **Defects are logged, not swallowed.** Anything found but not fixed goes in `.planning/WINDOWS.md` with evidence, including the measurement that proved it.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+pnpm workspace, four compose services plus Postgres and Mosquitto.
+
+```
+apps/simulator   seeded per-machine state machine (EXECUTE/DOWN/CHANGEOVER/BREAK),
+                 publishes PackTags-lite JSON on spBv1.0/LineLens/DDATA/{line}/{machine};
+                 HTTP control API on :4000 (healthz, clock, inject-breakdown,
+                 ingestor-ready)
+apps/worker      SOLE MQTT consumer, SOLE Postgres writer. raw machine_event ->
+                 state_interval -> loss_event -> order allocation/shipping;
+                 emits LISTEN/NOTIFY for the web tier
+apps/web         Next.js App Router. Route handlers read Postgres; /api/stream is
+                 the SSE endpoint. Screens: andon, oee, timeline, orders,
+                 orders/[id], losses, dds
+packages/contracts  zod schemas + sim-clock math shared by all three
+packages/db         Prisma schema, migrations, and the SQL views doing the
+                    analytical work (v_shift_windows, v_order_status, v_difot,
+                    order_loss_drilldown)
+```
+
+**Startup ordering is load-bearing.** compose guarantees the worker starts after the simulator, and the simulator publishes a full sim-day of warm-start backlog in ~1.5s at boot. It therefore starts its control server first, then waits for the worker to POST `/control/ingestor-ready` before releasing the burst -- otherwise that day is published to nobody (`clean:false` + QoS1 only replays into a pre-existing session). The same handshake carries `maxSimTimeMs`, so a restart against a surviving volume resumes the clock from stored history instead of warm-starting over it. See WINDOWS 15 and 14.
 <!-- GSD:architecture-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->

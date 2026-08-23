@@ -32,19 +32,15 @@ A recruiter or plant manager watching a 60-second demo immediately understands: 
 - [x] Andon board: all lines on one screen — state + good count + target count, updating live via SSE (Postgres LISTEN/NOTIFY fan-out)
 - [x] Demo "Inject breakdown" control that visibly cascades through OEE -> andon -> timeline live
 
+**Validated in Phase 4: DIFOT, Losses Pareto & Daily Direction Setting** (2026-08-23) - DASH-02, DIFOT-01, DIFOT-02, DDS-01. The differentiator lands: machine-level losses are now connected to broken customer promises and to management-language decisions. Verified 4/4 must-have truths, the last of them observed live rather than inferred - the sim clock produced a genuine AT_RISK order unaided and the "drill-down money shot" smoke test executed its shift-convergence assertion instead of skipping. Full smoke suite 14/14 green, 0 skipped.
+- [x] Six Big Losses Pareto / Top Losses report, stackable per shift, with a cumulative-% line
+- [x] Simulated order book (demand per SKU/day) fulfilled from simulated production via FIFO allocation -> DIFOT % (in-full, on-time)
+- [x] Drill-down: late/at-risk order -> contributing line/machine loss events, deep-linked to the highlighted band in the Timeline (the money shot)
+- [x] Daily Direction Setting screen: yesterday's safety/quality/delivery summary + OEE + top loss, rule-generated top actions, escalation status
+
 ### Active
 
-<sub>All Simulator requirements are Validated (Phase 1, plus SIM-05 in Phase 3). All OEE Engine requirements are Validated (Phase 2).</sub>
-
-**Dashboard (English UI)**
-- [ ] Six Big Losses Pareto / Top Losses report, stackable per shift
-
-**DIFOT Module (differentiator)**
-- [ ] Simulated order book (demand per SKU/day) linked to production output → DIFOT % (in-full, on-time)
-- [ ] Drill-down: late/at-risk order → contributing line/machine loss events (the money shot)
-
-**DDS Screen**
-- [ ] Daily Direction Setting screen: yesterday's performance summary (safety/quality/delivery + OEE + top loss), top-3 actions today with owners, escalation status
+<sub>All Simulator requirements are Validated (Phase 1, plus SIM-05 in Phase 3). All OEE Engine requirements are Validated (Phase 2). All Dashboard, DIFOT and DDS requirements are Validated (Phases 3-4). Only Distribution remains.</sub>
 
 **Distribution (part of Definition of Done)**
 - [ ] Public GitHub repo (github.com/afrizzal), MIT license, README with hero GIF + one-command quick start
@@ -118,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-22 after Phase 3 completion*
+*Last updated: 2026-08-23 after Phase 4 completion*
