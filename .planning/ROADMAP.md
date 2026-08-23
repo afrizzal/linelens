@@ -87,10 +87,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A viewer drills down from a late/at-risk order to the specific contributing machine-level loss events ("breakdown Line 2 → 3 orders late"), and injecting a *different* breakdown changes *which* order goes late — a genuinely causal link, not a hardcoded demo path.
   4. A viewer sees a Daily Direction Setting screen: yesterday's safety/quality/delivery + OEE + top loss, top-3 actions today with owners, and escalation status.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 - [x] 04-01-PLAN.md
-- [ ] 04-02-PLAN.md
+- [x] 04-02-PLAN.md
 - [ ] 04-03-PLAN.md
 
 **UI hint**: yes
@@ -119,5 +119,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation & Living Plant | 3/3 | Complete | 2026-07-25 |
 | 2. OEE Engine (Credibility Gate) | 3/3 | Complete    | 2026-08-22 |
 | 3. Live Dashboard — Vertical Slice | 3/3 | Complete    | 2026-08-22 |
-| 4. DIFOT, Losses Pareto & DDS | 1/3 | In Progress|  |
+| 4. DIFOT, Losses Pareto & DDS | 2/3 | In Progress|  |
 | 5. Distribution | 0/2 | Planned | - |

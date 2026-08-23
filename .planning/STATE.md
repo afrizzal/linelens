@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: difot-pareto-dds
 status: executing
-stopped_at: Completed 04-01-PLAN.md (order book + FIFO allocation + DIFOT views) -- ready for 04-02
-last_updated: "2026-08-23T02:30:40.619Z"
+stopped_at: Completed 04-02-PLAN.md (drill-down SQL + order detail UI + causality proof) -- ready for 04-03
+last_updated: "2026-08-23T05:51:16.707Z"
 last_activity: 2026-08-23
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 ## Current Position
 
 Phase: 04 (difot-pareto-dds) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-23 — Phase 04 execution started
 
-Progress: [███████░░░] 71% (3/14 plans)
+Progress: [████████░░] 79% (3/14 plans)
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [███████░░░] 71% (3/14 plans)
 | Phase 03 P2 | 90min | 3 tasks | 27 files |
 | Phase 03 P3 | 25min | 3 tasks | 8 files |
 | Phase 04 P1 | 90min | 3 tasks | 21 files |
+| Phase 04 P2 | 210min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-03: POST /api/control/inject established as the thin-proxy pattern for demo controls (web forwards to SIMULATOR_URL, browser never talks to the simulator container directly) — reusable for future demo controls
 - [Phase ?]: 04-01: allocateGoodProduction added to DerivationStore (PrismaStore delegates to orders/allocate.ts with its own tx; MemoryStore no-ops) rather than threading a raw Prisma.TransactionClient through intervals.ts -- keeps the existing store-abstraction convention
 - [Phase ?]: 04-01: v_order_status current_good_rate measured off machine_event.productId directly, not a join through machine.currentProductId -- more precise mid-changeover
+- [Phase ?]: 04-02: DEEP-LINK Option A (sim-time window highlight) chosen over Option B (populate dead stateIntervalId) -- stays in-scope, honest sub-interval caveat for rules 3/4/5
+- [Phase ?]: 04-02: causality test's control-line assertion compares L3's raw machine_event stream, not order status -- machines rotate through all 3 products over time, confounding order-status-level comparison across line boundaries
+- [Phase ?]: 04-02: injected breakdown duration tuned 90min->4h in causality.test.ts for deterministic proof at seed 42 -- same mechanism, larger magnitude
 
 ### Pending Todos
 
@@ -128,6 +132,7 @@ None yet.
 - Toolchain gotcha (this machine, pre-existing): plain `pnpm` — even Volta-shimmed — spawns children under Node v20.20.2 rather than the pinned 24.10.0, which breaks jsdom/undici in apps/web/test. Use `volta run --node 24.10.0 -- pnpm test` for a clean run. Not fixed; unrelated to any phase-03 change.
 - 03-03: OEE/timeline page defaults land on an empty shift during sim 23:00-07:00 (8/24 real min) — N/A render is correct per project rule but a demo-credibility risk (1-in-3 chance of blank screen). Deferred by explicit user decision at the 03-03 checkpoint; see deferred-items.md and WINDOWS.md ledger entry 3. Not blocking Phase 3.
 - 04-01: two pre-existing local Windows dev-environment quirks encountered (not phase defects) -- a native postgres.exe permanently squats host port 5432 (workaround: remap throwaway containers to an alternate port for host-based prisma/psql access; docker compose's internal networking is unaffected), and prisma migrate dev/reset hung indefinitely multiple times for undiagnosed reasons (workaround: wipe the DB volume and re-apply the full migration set fresh).
+- 04-02: allocateGoodProduction (apps/worker/src/orders/allocate.ts) re-fetches every open order's full allocation list per COUNTS event -- cost grows with open-order backlog depth. Confirmed under load building the causality test; logged as WINDOWS entry 10 (todo). Not blocking at demo scale.
 
 ### Quick Tasks Completed
 
@@ -138,6 +143,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-23T02:30:40.598Z
-Stopped at: Completed 04-01-PLAN.md (order book + FIFO allocation + DIFOT views) -- ready for 04-02
+Last session: 2026-08-23T05:51:16.685Z
+Stopped at: Completed 04-02-PLAN.md (drill-down SQL + order detail UI + causality proof) -- ready for 04-03
 Resume file: None
