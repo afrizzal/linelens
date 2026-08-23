@@ -24,6 +24,14 @@ export interface IngestDeps {
    * spec: a second connect with the same clientId kicks the first).
    */
   clientId?: string;
+  /**
+   * Fired after each successful subscribe (initial connect AND every
+   * reconnect). main.ts uses it to signal the simulator that ingestion is
+   * live so it can release its warm-start burst — see WINDOWS 15 and
+   * apps/simulator/src/control.ts `/control/ingestor-ready`. Must be safe to
+   * call repeatedly.
+   */
+  onSubscribed?: () => void;
 }
 
 export interface IngestHandle {
@@ -85,7 +93,7 @@ const toRow = (event: TelemetryEventT): MachineEventRow => {
 };
 
 export const createIngestion = (deps: IngestDeps): IngestHandle => {
-  const { db, logger, mqttUrl, flushIntervalMs = 100, batchSize = 500, clientId = 'linelens-worker' } = deps;
+  const { db, logger, mqttUrl, flushIntervalMs = 100, batchSize = 500, clientId = 'linelens-worker', onSubscribed } = deps;
 
   let buffer: MachineEventRow[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -138,8 +146,14 @@ export const createIngestion = (deps: IngestDeps): IngestHandle => {
   client.on('connect', (packet) => {
     logger.info({ sessionPresent: packet.sessionPresent }, 'mqtt connected');
     client.subscribe(TELEMETRY_SUBSCRIPTION, { qos: 1 }, (err) => {
-      if (err) logger.error({ err }, 'mqtt subscribe failed');
-      else logger.info({ topic: TELEMETRY_SUBSCRIPTION }, 'mqtt subscribed');
+      if (err) {
+        logger.error({ err }, 'mqtt subscribe failed');
+        return;
+      }
+      logger.info({ topic: TELEMETRY_SUBSCRIPTION }, 'mqtt subscribed');
+      // Only AFTER the broker confirms the subscription — signalling on
+      // 'connect' would still race the simulator's warm-start burst.
+      onSubscribed?.();
     });
   });
   client.on('reconnect', () => logger.warn('mqtt reconnecting'));

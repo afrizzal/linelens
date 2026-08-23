@@ -20,6 +20,8 @@ const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const MQTT_URL = process.env.MQTT_URL ?? 'mqtt://localhost:1883';
 const SIMULATOR_URL = process.env.SIMULATOR_URL ?? 'http://localhost:4000';
 const CLOCK_POLL_MS = 2000;
+const INGESTOR_READY_ATTEMPTS = 5;
+const INGESTOR_READY_RETRY_MS = 1000;
 
 // 04-01-PLAN.md Task 1: same plant.config.json (`seed` field) the simulator
 // and db seed use — order generation shares this global seed so it stays
@@ -138,6 +140,38 @@ const syncOrderBook = async (db: Db, clock: SimulatorClockState | null, seed: nu
   }
 };
 
+/**
+ * WINDOWS 15: tell the simulator that ingestion is live.
+ *
+ * The simulator publishes a full sim-day of warm-start backlog in ~1.5s at
+ * boot, and compose guarantees it starts before this worker. MQTT
+ * `clean:false` + QoS1 only replays into a session that ALREADY exists, so
+ * without this handshake the whole warm-start day is published to nobody and
+ * lost. The simulator holds its burst until this POST lands.
+ *
+ * Never fatal — the simulator has its own timeout backstop, and this worker
+ * must keep ingesting even if the control endpoint is unreachable. Called
+ * again on every MQTT reconnect; the endpoint is idempotent.
+ */
+const signalIngestorReady = async (): Promise<void> => {
+  for (let attempt = 1; attempt <= INGESTOR_READY_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${SIMULATOR_URL}/control/ingestor-ready`, { method: 'POST' });
+      if (res.ok) {
+        logger.info({ attempt }, 'ingestor-ready signalled');
+        return;
+      }
+      logger.warn({ attempt, status: res.status }, 'ingestor-ready rejected');
+    } catch (err) {
+      logger.warn({ attempt, err }, 'ingestor-ready signal failed');
+    }
+    if (attempt < INGESTOR_READY_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, INGESTOR_READY_RETRY_MS));
+    }
+  }
+  logger.warn('giving up on ingestor-ready signal; simulator will warm-start on its own timeout');
+};
+
 const main = async (): Promise<void> => {
   runMigrations();
 
@@ -153,7 +187,12 @@ const main = async (): Promise<void> => {
   await clockTick();
   const clockInterval = setInterval(() => void clockTick(), CLOCK_POLL_MS);
 
-  const ingestion = createIngestion({ db, logger, mqttUrl: MQTT_URL });
+  const ingestion = createIngestion({
+    db,
+    logger,
+    mqttUrl: MQTT_URL,
+    onSubscribed: () => void signalIngestorReady(),
+  });
 
   // The OEE engine: machine_event -> state_interval -> loss_event
   // (02-02-PLAN.md). The notifier is a DEDICATED raw pg connection (never

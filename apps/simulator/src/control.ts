@@ -22,6 +22,15 @@ export interface ControlDeps {
   simNow: () => number;
   /** Wall-clock "now" provider — kept as an injected dependency so this file never calls Date.now() itself (main.ts owns the clock edge). */
   nowRealMs: () => number;
+  /**
+   * Called when the ingestion worker reports that it has subscribed to the
+   * telemetry topic. main.ts uses this to release the warm-start gate — see
+   * the WINDOWS-15 note on `/control/ingestor-ready` below. Idempotent: the
+   * worker re-signals on every MQTT reconnect.
+   */
+  onIngestorReady?: () => void;
+  /** Warm-start progress, surfaced on /healthz so a cold start is debuggable. */
+  getReadiness?: () => { ingestorReady: boolean; warmStartComplete: boolean };
   logger: Logger;
 }
 
@@ -47,13 +56,21 @@ const sendJson = (res: http.ServerResponse, status: number, body: unknown): void
 };
 
 export const createControlServer = (deps: ControlDeps, port: number): http.Server => {
-  const { plant, getClock, setClock, simNow, nowRealMs, logger } = deps;
+  const { plant, getClock, setClock, simNow, nowRealMs, onIngestorReady, getReadiness, logger } = deps;
 
   const server = http.createServer((req, res) => {
     const url = req.url ?? '/';
 
     if (req.method === 'GET' && url === '/healthz') {
-      sendJson(res, 200, { simNow: new Date(simNow()).toISOString(), speed: getClock().speed, machines: plant.machineCount() });
+      sendJson(res, 200, {
+        simNow: new Date(simNow()).toISOString(),
+        speed: getClock().speed,
+        machines: plant.machineCount(),
+        // Warm-start state is part of health because the control server now
+        // listens BEFORE the warm-start burst (WINDOWS 15) — "healthy" no
+        // longer implies "backlog published".
+        ...(getReadiness ? getReadiness() : {}),
+      });
       return;
     }
 
@@ -104,6 +121,28 @@ export const createControlServer = (deps: ControlDeps, port: number): http.Serve
           logger.error({ err }, 'speed request failed');
           sendJson(res, 400, { error: 'invalid JSON body' });
         });
+      return;
+    }
+
+    /**
+     * WINDOWS 15 — warm-start readiness handshake.
+     *
+     * The simulator publishes a full sim-day of backlog in ~1.5s at boot. On a
+     * clean `docker compose up` the ingestion worker has not subscribed yet
+     * (and `clean:false` + QoS1 only replays into a session that ALREADY
+     * exists), so that entire day used to be dropped on the floor. The worker
+     * now POSTs here once it is subscribed, and main.ts holds the burst until
+     * it does.
+     *
+     * Idempotent by design: the worker re-signals on every MQTT reconnect, and
+     * a worker restart long after go-live must be a no-op, not a second
+     * warm-start.
+     */
+    if (req.method === 'POST' && url === '/control/ingestor-ready') {
+      const readiness = getReadiness?.();
+      onIngestorReady?.();
+      logger.info({ warmStartComplete: readiness?.warmStartComplete ?? false }, 'ingestor-ready received');
+      sendJson(res, 200, { ok: true, warmStartComplete: readiness?.warmStartComplete ?? false });
       return;
     }
 
